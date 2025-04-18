@@ -1,0 +1,10 @@
+server:
+  port: "8080"
+
+log:
+  level: "info"
+  max_size_mb: 100
+  max_backups: 5
+  max_age_days: 30
+  compress: true
+  log_dir: "/logs"

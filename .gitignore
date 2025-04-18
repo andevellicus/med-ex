@@ -1,0 +1,22 @@
+# Node.js dependencies
+client/node_modules/
+
+# Built files
+client/dist/
+
+# Logs
+logs/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Go modules
+server/go.mod
+server/go.sum
+
+# IDE specific files (e.g., VS Code)
+.vscode/
+
+# debug binaries
+__debug_bin*
