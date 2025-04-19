@@ -1,0 +1,32 @@
+LKW Date:
+  type: string
+  description: Date that the patient was last known well or last known normal
+LKW Time:
+  type: string
+  description: Time that the patient was last known well or last known normal  
+Admission NIHSS:
+  type: number
+  description: NIH stroke scale (NIHSS) at time of admission or presentation
+Discharge NIHSS:
+  type: number
+  description: NIH stroke scale (NIHSS) at time of discharge
+Admission mRS:
+  type: number
+  description: Pre stroke or preadmission modified Rankin Scale (mRS). Range of 0-6
+Discharge mRS:
+  type: number
+  description: Discharge modified Rankin Scale (mRS). Range of 0-6
+Thrombolytics:
+  type: boolean
+  description: Did the patient get thrombolytic (IV tPA or TNK). Should be true or false.
+Thrombolytic Time:
+  type: string
+  description: Time and date at which the patient recieved thrombolytic (IV tPA or TNK)
+TICI:
+  type: number
+  description: Final TICI score, which is a measure of recanalization or reperfusion. Options are TICI 0, TICI 1, TICI 2A, TICI 2B, TICI 2C, and TICI 3.
+Occlusion:
+  type: array
+  items:
+    type: string
+  description: Which blood vessels were occluded (M1, M2, ICA, etc). Sometimes may be more than one.

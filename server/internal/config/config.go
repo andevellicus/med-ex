@@ -20,7 +20,10 @@ type Config struct {
 		Compress   bool   `mapstructure:"compress"`
 		LogDir     string `mapstructure:"log_dir"`
 	} `mapstructure:"log"`
-	// Add other configuration sections here as needed
+	LLM struct {
+		ServerURL string `mapstructure:"server_url"`
+		SchemaDir string `mapstructure:"schema_dir"`
+	} `mapstructure:"llm"`
 }
 
 // NewDefaultConfig returns a Config struct with default values.
@@ -45,6 +48,13 @@ func NewDefaultConfig() *Config {
 			MaxAgeDays: 30,
 			Compress:   true,
 			LogDir:     "./logs",
+		},
+		LLM: struct {
+			ServerURL string "mapstructure:\"server_url\""
+			SchemaDir string `mapstructure:"schema_dir"`
+		}{
+			ServerURL: "http://127.0.0.1",
+			SchemaDir: "config/",
 		},
 	}
 }

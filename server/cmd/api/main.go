@@ -9,8 +9,11 @@ import (
 	"runtime"
 
 	"github.com/andevellicus/webapp/internal/config"
+	"github.com/andevellicus/webapp/internal/extractor"
+	"github.com/andevellicus/webapp/internal/handlers"
 	"github.com/andevellicus/webapp/internal/logger"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -43,6 +46,16 @@ func main() {
 	}
 	defer log.Sync()
 
+	// --- Add Service Initialization ---
+	extractorService, err := extractor.NewExtractorService(cfg, log, rootPath)
+	if err != nil {
+		log.Fatal("Failed to initialize extractor service", zap.Error(err))
+	}
+	log.Info("Extractor service initialized")
+	// --- Add Handler Initialization ---
+	schemaHandler := handlers.NewSchemaHandler(extractorService, log)
+	log.Info("Handlers initialized")
+
 	// Set Gin mode
 	if os.Getenv("GO_ENV") == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -54,6 +67,14 @@ func main() {
 		c.Set("logger", log)
 		c.Next()
 	})
+
+	// --- Add API Route ---
+	api := router.Group("/api") // Group API routes
+	{
+
+		api.GET("/schemas", schemaHandler.GetSchemas)
+		// Add other API routes here
+	}
 
 	clientDistPath := filepath.Join(rootPath, "client", "dist")
 	router.Use(staticFS(clientDistPath))

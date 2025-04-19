@@ -8,3 +8,7 @@ log:
   max_age_days: 30
   compress: true
   log_dir: "/logs"
+
+llm:
+  server: "http://127.0.0.1:5000"
+  schema_dir: "config/schemas"

@@ -1,0 +1,230 @@
+Age:
+  type: number
+  description: Patient age in years
+Gender:
+  type: string
+  description: Patient gender - male, female, or non-binary
+Ethnicity:
+  type: string
+  description: Patient's race or ethnicity
+Chief complaint or concern:
+  type: string
+  description: The primary reason for the patient visit or encounter
+Past medical history:
+  type: array
+  items:
+    type: string
+  description: The past medical history of the patient
+Past surgical history:
+  type: array
+  items:
+    type: string
+  description: The past surgical history of the patient
+Family history:
+  type: array
+  items:
+    type: string
+  description: The family history of the patient
+# Social history
+Smoking:
+  type: string
+  description: How much does the patient smoke, usually in PPD (pack per day)
+Alcohol:
+  type: string
+  description: How much alcohol does the patient drink, usually in drinks per week
+Illicit drugs:
+  type: string
+  description: How often does the patient use illicit drugs
+# Medications
+Medications:
+  type: array
+  items:
+    type: string
+  description: Current or admission medications
+# Allergies
+Allergies:
+  type: array
+  items:
+    type: string
+  description: Known allergies
+# Vitals
+Vital signs:
+  type: object
+  description: Patient vital signs
+  properties:
+    Temperature:
+      type: string
+    Heart rate:
+      type: string
+    Blood pressure:
+      type: string
+    Respiratory rate:
+      type: string
+    O2 Sat:
+      type: string
+      description: Sometimes written as SpO2. Usually %
+# Anthropometric
+Height:
+  type: number
+Weight:
+  type: number
+BMI:
+  type: number
+  description: Body mass index
+# Labs
+Labs:
+  type: object
+  properties:
+# Labs - CBC
+    WBC:
+      type: number
+      description: White blood cell count
+    Hb:
+      type: number
+      description: Hemoglobin. Often combined with hematocrit as H (hemoglobin) and H (hematocrit), or some variation
+    HCT:
+      type: Number
+      description: Hematocrit. Often combined with hemoglobin as H (hemoglobin) and H (hematocrit), or some variation
+    Platelet count:
+      type: number
+# Labs - BMP
+    Na:
+      type: number
+      description: Sodium
+    K:
+      type: number
+      description: Potassium
+    Cl:
+      type: number
+      description: Chloride
+    CO2:
+      type: number
+      description: Carbon dioxide
+    BUN:
+      type: number
+      description: Blood urea nitrogen
+    Cr:
+      type: number
+      description: Creatinine
+    Glu:
+      type: number
+      decsription: Blood glucose
+# Labs - CMP
+    Calcium:
+      type: number
+      decsription: Serum calcium
+    Magnesium:
+      type: number
+      decsription: Serum magnesium
+    Phosphorus:
+      type: number
+      decsription: Serum phosphorus
+    Total Protein:
+      type: number
+    Albumin:
+      type: number
+    Bilirubin:
+      type: number
+    Alk Phos:
+      type: number
+      decsription: Alkaline phosphatase
+    ALT:
+      type: number
+      decsription: Alanine aminotransferase
+    AST:
+      type: number
+      decsription: Aspartate aminotransferase
+# Labs - Coags
+    PT:
+      type: number
+      decsription: Prothrombin time
+    PTT:
+      type: number
+      decsription: Partial thromboplastin time
+    INR:
+      type: number
+      decsription: International Normalized Ratio
+# Labs - Blood Gas
+    pH:
+      type: number
+    pCO2:
+      type: number
+      decsription: Partial pressure of carbon dioxide
+    pO2:
+      type: number
+      decsription: Partial pressure of oxygen
+    HCO3:
+      type: number
+      decsription: Bicarbonate
+    Base excess:
+      type: number
+      decsription: Base excess
+    O2 Sat:
+      type: number
+      decsription: Oxygen saturation
+# Labs - General
+    HbA1C:
+      type: number
+      decsription: Hemoglobin A1C
+# Labs - Cardiac
+    Troponin:
+      type: number
+    BNP:
+      type: number
+      decsription: Brain natriuretic peptide
+    CKMB:
+      type: number
+      decsription: Creatine kinase-MB
+    Myoglobin:
+      type: number        
+# Labs - Lipid panel
+    Total cholesterol:
+      type: number
+    LDL:
+      type: number
+      decsription: Low-density lipoprotein
+    HDL:
+      type: number
+      decsription: High-density lipoprotein
+    Trigylcerides:
+      type: number      
+# Labs - Inflammatory
+    CRP:
+      type: number
+      decsription: C reactive protein
+    ESR:
+      type: number
+      decsription: Erythrocyte sedimentation rate
+# Diagnostic studies - Non imaging
+EKG:
+  type: string
+  description: Impression or result from a electrocardiogram
+EEG:
+  type: string
+  description: Impression or result from a electroencephalogram
+# Diagnostic studies - Imaging
+X-Ray:
+  type: array
+  items:
+    type: string
+  description: Impression or result from any x-ray (chest, abdominal, etc)
+US:
+  type: array
+  items:
+    type: string
+  description: Impression or result from any ultrasound
+ECHO:
+  type: array
+  items:
+    type: string
+  description: Impression or result from any echocardiogram
+CT:
+  type: array
+  items:
+    type: string
+  description: Impression or result from any computed tomography (CT) scan
+MRI:
+  type: array
+  items:
+    type: string
+  description: Impression or result from any magnetic resonance imaging (MRI) scan

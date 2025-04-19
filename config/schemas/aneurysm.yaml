@@ -1,0 +1,395 @@
+Number of Prior Treatments:
+  type: number
+  description: Number of prior treatments for aneurysm (including the current hospitalization)
+Treatment Year:
+  type: string
+  description: Year of treatment
+Treatment Type:
+  type: string
+  description: Type of treatment. Options are Endo-Coil, Endo-Stent Coil, Endo-Balloon Coil, Endo-flow diversion (PED), Endo-Web, Endo-Sacrifice, Open-Clip, Open-Bypass, Open-Sacrifice, ICA Ligation
+Treatment Location:
+  type: string
+  description: Location of treatment. Options are Cervical ICA, Petrous ICA, Cavernous ICA, Carotid Cave, SHA, Ophthalmic, ICA Ventral Wall, ICA Dorsal Wall, ICA/Fetal PCA, PCOM, AChA, ICA Terminus, Other ICA, ACOM, A1, A2-A4, MCA Bifurcation, M1, M2-M4, Vertebral, PICA, VB Junction, AICA, Basilar Trunk, Basilar Apex, SCA, PCA, PChA, Other
+Treatment Date:
+  type: string
+  description: Date of treatment
+Sex:
+  type: string
+  description: Patient gender or sex. Male, female, non binary
+Ethnicity:
+  type: string
+  description: Patient ethnicity. Hispanic or non hispanic
+Race:
+  type: string
+  description: Patient race. White, Black or African American, Asian or Asian American, American Indian or Alaskan Native, Native Hawaiian or other Pacific Islander, Some other race or origin
+Smoking History:
+  type: string
+  description: Smoking history. Unknown, Never, Former, Current
+Alcohol History: 
+  type: string
+  description: Alcohol history. Unknown, Never, Former, Current
+Hypertension:
+  type: bool
+Hyperlipidemia:
+  type: bool
+Diabetes Mellitus:
+  type: bool
+Prior Stroke:
+  type: bool
+Family History of Aneurysm:
+  type: bool
+Prior History of SAH:
+  type: bool
+Aneurysm Treatment Status:
+  type: string
+  description: Status of aneurysm. Options are New, Treatment for residual, Treatment for recurrence, Unknown
+Number of prior treated aneurysms:
+  type: number
+  description: Number of untreated aneurysms (including the current aneurysm)
+Number of untreated aneurysms:
+  type: number
+  description: Number of untreated aneurysms (including the current aneurysm)
+Headache:
+  type: bool
+Cranial nerve palsy:
+  type: bool
+Seizures:
+  type: bool
+Focal Neurologic deficit:
+  type: bool
+  Description: Focal neurologic deficit
+Consciousness disturbance:
+  type: bool
+  Description: Disturbance in consciousness
+TIA or CVA:
+  type: bool
+  Description: Did the patient have  a transient ischemic attack or cerebrovascular accident
+Pre Admission mRS:
+  type: number
+  description: Preadmission modified Rankin Scale (mRS). Range of 0-6
+  enum:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6 
+Ruptured Aneurysm at the current presentation:
+  type: bool
+  description: Was the aneurysm ruptured at the current presentation
+Admission Hunt and Hess Score:
+  type: number
+  description: Hunt and Hess score at admission
+  enum:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+Admission Fisher Score:
+  type: number
+  description: Fisher score at admission
+  enum:
+  - 1
+  - 2
+  - 3
+  - 4
+Subarachnoid Hemorrhage at presentation:
+  type: bool
+  description: Subarachnoid hemorrhage at presentation
+Subdural hemorrhage at presentation:
+  type: bool
+  description: Subdural hemorrhage at presentation
+Intraparenchymal Hemorrhage at presentation:
+  type: bool
+  description: Intraparenchymal hemorrhage at presentation
+Intraventricular Hemorrhage at presentation:
+  type: bool
+  description: Intraventricular hemorrhage at presentation
+Hydrocephalus present at admission:
+  type: bool
+  description: Hydrocephalus present at admission
+Anticoagulants:
+  type: array
+  items:
+    type: string
+  description: What anti-coagulants is the patient on. Options are Warfarin or DOACs
+Antiplatelets:
+  type: array
+  items:
+    type: string
+  description: What anti-platelets is the patient on. Options are Aspirin, Plavix, Other
+Statin used:
+  type: bool
+Aneurysm Location:
+  type: array
+  items:
+    type: string
+  description: Location of aneurysm. Options are ACOM, A1, A2, A3, A4, ACOM-A1, ACOM-A2, ACOM-A3, ACOM-A4, ACOM-A5, ACOM-A6, ACOM-A7, ACOM-A8, ACOM-A9, ACOM-A10, ACOM-A11, ACOM-A12, ACOM-A13, ACOM-A14, ACOM-A15, ACOM-A16, ACOM-A17, ACOM-A18, ACOM-A19, ACOM-A20, ACOM-A21, ACOM-A22, ACOM-A23, ACOM-A24, ACOM-A25, ACOM-A26, ACOM-A27, ACOM-A28, ACOM-A29, ACOM-A30, ACOM-A31, ACOM-A32, ACOM-A33, ACOM-A34, ACOM-A35, ACOM-A36, ACOM-A37, ACOM-A38, ACOM-A39, ACOM-A40, ACOM-A41, ACOM-A42, ACOM-A43, ACOM-A44, ACOM-A45, ACOM-A46, ACOM-A47, ACOM-A48, ACOM-A49, ACOM-A50, ACOM-A51, ACOM-A52, ACOM-A53, ACOM-A54, ACOM-A55, ACOM-A56, ACOM-A57, ACOM-A58, ACOM-A59, ACOM-A60, ACOM-A61, ACOM-A62, ACOM-A63, ACOM-A64, ACOM-A65, ACOM-A66, ACOM-A67, ACOM-A68, ACOM-A69, ACOM-A70, ACOM-A71, ACOM-A72, ACOM-A73, ACOM-A74, ACOM-A75, ACOM-A76, ACOM-A77, ACOM-A78, ACOM-A79, ACOM-A80, ACOM-A81, ACOM-A82, ACOM-A83, ACOM-A84, ACOM-A85, ACOM-A86, ACOM-A87, ACOM-A88, ACOM-A89, ACOM-A90, ACOM-A91, ACOM-A92, ACOM-A93, ACOM-A94, ACOM-A95, A
+Aneurysm side:
+  type: array
+  items:
+    type: string
+  description: Side of aneurysm. Options are Right, Left
+Aneurysm growing:
+  type: array
+  items:
+    type: bool
+  description: Is the aneurysm of growing
+Aneurysm thrombosed:
+  type: array
+  items:
+    type: bool
+  description: Is the aneurysm thrombosed
+Aneurysm morphology:
+  type: array
+  items:
+    type: string
+  description: Morphology of aneurysm. Options are smooth, murphy's tit, mutlilobulated
+Aneurysm Etiology:
+  type: array
+  items:
+    type: string
+  description: Etiology of aneurysm. Options are Idiopathic, Dissecting/pseudo, Infectious, Traumatic
+Aneurysm width:
+  type: string
+  description: Width of aneurysms, in mm. For fusiform type, report maximum diameter.
+Aneurysm height:
+  type: string
+  description: Height of aneurysms, in mm. For fusiform type, report maximum length.
+Aneurysm Neck:
+  type: string
+  description: Width of the neck of the aneurysm, in mm. For fusiform type, report maximum diameter.
+Aneurysm Location:
+  type: string
+  description: Location of the aneurysm relative to parent vessel for saccular aneurysms. Options are sidewall, bifurcation, NA
+Associated Vascular Pathology:
+  type: string
+  description: What vascular malformations are associated with the aneurysm. Options are AVM, dAVF, cavernous malformation, other
+Same location:
+  type: bool
+  description: Is associated vascular pathology in same vascular territory of aneurysm
+Diagnostic Imaging Stidy:
+  type: string
+  description: First imaging study used to diagnose the aneurysm. Options are CTA, MRA with contrast, MRA without contrast, MRI, DSA, unknown
+Treatment Acuity:
+  type: string
+  description: Acuity of treatment. Options are Elective, Acute (<72 hours), Subacute (72 hours to 4 weeks)
+Procedure type:
+  type: string
+  description: Type of procedure. Options are Open, Endo, Hybrid
+Access Location:
+  type: string
+  description: Location of access. Options are Femoral, Radial, Other
+Clip:
+  type: bool
+  description: Was the aneurysm clipped
+Clipping Technique:
+  type: string
+  description: Technique used for clipping. Options are Simple Clip Across Neck, Multi / Complex Clipping, Wrapping, Bypass
+Bypass:
+  type: bool
+  description: Does the patient need a Bypass in addition to clipping? 
+Coil:
+  type: bool
+Balloon:
+  type: bool
+Two Catheter technique:
+  type: bool
+Stent:
+  type: bool
+Stent Name:
+  type: string
+Flow diversion:
+  type: bool
+Flow diverter Name and manufacturer:
+  type: string
+FD Width:
+  type: string
+  Description: Width of the flow diverter, in mm
+FD Length:
+  type: string
+  Description: Length of the flow diverter, in mm
+Intrasaccular Flow Diversion:
+  type: bool
+Intrasaccular device Name:
+  type: string
+Pulse Rider:
+  type: bool
+Comanenci:
+  type: bool
+Post clip imaging:
+  description: Immediate post clipping imaging modality. Options are CTA, DSA, unknown
+CTA post-clip occlusion:
+  type: bool
+  description: Was the aneurysm occluded on post clip CTA
+RROC Post Op:
+  type: string
+  description: Raymond Roy Occlusion Classification at the end of the procedure
+Percentage of Occlusion:
+  type: string
+  description: Percentage of occlusion at the end of the procedure
+WEB scale:
+  type: string
+  description: WEB scale at the end of the procedure
+Staged:
+  type: bool
+  description: Was the procedure done in stages
+Intraoperative Rupture:
+  type: bool
+  description: Was there an intraoperative rupture
+Intimal Injury:
+  type: bool
+  description: Was there an intimal injury (dissection)
+Coil herniation:
+  type: bool
+  description: Was there coil herniation
+Thrombus on Coil:
+  type: bool
+  description: Was there thrombus formation on coil
+Thrombus on Stent:
+  type: bool
+  description: Was there thrombus formation on stent
+Thrombus on FD:
+  type: bool
+  description: Was there thrombus formation on flow diverter
+Thrombus on intrasaccular device:
+  type: bool
+  description: Was there thrombus formation at the base of intrasaccular device
+Unplanned Stenting:
+  type: bool
+  description: Was there unplanned stenting, i.e., planned coiling alone or balloon coiling but stent was required as rescue strategy
+Coil migration:
+  type: bool
+  description: Was there coil migration to parent artery 
+FD Wall Apposition:
+  type: bool
+  description: Was there flow diverter opposed to vessel requiring post deployment manipulation 
+Unplanned additional FD:
+  type: bool
+  description: Was there unplanned additional flow diverter deployed, i.e., landed in undesired location
+In-stent thrombosis:
+  type: bool
+  description: Was there in-stent thrombosis
+Clip stenosis:
+  type: bool
+  description: Was there clip stenosis
+Branch Vessel Occlusion:
+  type: bool
+  description: Was there branch vessel occlusion 
+EVD During Admission:
+  type: bool
+  description: Was an external ventricular drain placed during admission
+EVD Placement Timing:
+  type: string
+  description: Was EVD placed before or after aneurysm treatment
+LD During Admission:
+  type: bool
+  description: Was lumbar drain placed during admission 
+LD Placement Timing:
+  type: string
+  description: Was lumbar drain placed before or after aneurysm treatment
+Radiographic Vasospasm:
+  type: bool
+  description: Was there radiographic vasospasm
+Symptomatic Vasospasm:
+  type: bool
+  description: Was there symptomatic vasospasm
+Symptomatic Vasospasm timing:
+  type: string
+  description: Timing of symptomatic vasospasm
+Access Site Complication:
+  type: bool
+  description: Was there access site complication
+Access Site Complication detail:  
+  type: string
+  description: Details of access site complication
+Mortality:
+  type: bool
+  description: Did the patient die after the procedure during their admission
+Death timing:
+  type: string
+  description: Timing of death
+Number of complications:
+  type: number
+Post Procedural Complications:
+  type: array
+  items:
+    type: string
+  description: Post procedural complications. Options are Vasospasm, Thromboembolic, Hemorrhagic, Infection, Hydrocephalus, Other
+Complication Timing:
+  type: string
+  description: Timing of complication
+Complication Teated:
+  type: bool
+  description: Was the complication treated
+Aneurysm retreatment:
+  type: bool
+  description: Was the aneurysm retreated (within same admission)
+Retreatment Clip:
+  type: bool
+  description: Was the aneurysm retreated with clipping
+Retreatment Clipping Technique:
+  type: string
+  description: Technique used for clipping. Options are Simple Clip Across Neck, Multi / Complex Clipping, Wrapping, Bypass
+Retreatment Coil:
+  type: bool
+  description: Was the aneurysm retreated with coiling
+Retreatment Balloon:
+  type: bool
+  description: Was the aneurysm retreated with balloon
+Retreatment Two Catheter Technique:
+  type: bool
+  description: Was the aneurysm retreated with two catheter technique
+Retreatment Stent:
+  type: bool
+  description: Was the aneurysm retreated with stent
+Retreatment Stent Name:
+  type: string
+  description: Name of the stent used for retreatment
+Retreatment FD:
+  type: bool
+  description: Was the aneurysm retreated with flow diversion
+Retreatment FD Type:
+  type: string
+  description: Name and manufacturer of the flow diverter used for retreatment
+Retreatment FD Width:
+  type: string
+  description: Width of the flow diverter used for retreatment
+Retreatment FD Length:
+  type: string
+  description: Length of the flow diverter used for retreatment
+Retreatment Intrasaccular Flow Diversion:
+  type: bool
+  description: Was the aneurysm retreated with intrasaccular flow diversion
+Retreatment Intrasaccular device Name:
+  type: string
+  description: Name of the intrasaccular device used for retreatment
+Retreatment Pulse Rider:
+  type: bool
+  description: Was the aneurysm retreated with pulse rider
+Retreatment Comanenci:
+  type: bool
+  description: Was the aneurysm retreated with comanenci
+Retreatment RROC:
+  type: string
+  description: Raymond Roy Occlusion Classification at the end of the procedure
+Retreatment Percentage of Occlusion:
+  type: string
+  description: Percentage of occlusion at the end of the procedure
+Retreatment WEB scale:
+  type: string
+  description: WEB scale at the end of the procedure
+Aspirin:
+  type: bool
+  description: Is the patient on Aspirin
+Antiplatelet Medication:
+  type: string
+  description: Which antiplatelet is the patient on. Options are Plavix/Brilinta/Effient
+Other Antiplatelet:
+  type: string
+  description: Other antiplatelet medication
+Antiplatelet Switch:
+  type: bool
+  description: Was the patient switched from initial antiplatelet medication (Plavix/Brilinta/Effient) to another medication? 
