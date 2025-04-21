@@ -92,7 +92,7 @@ func (h *ExtractHandler) ExtractEntities(c *gin.Context) {
 
 	// Perform extraction
 	result, err := h.Extractor.ProcessText(schema, textContent)
-	if err != nil {
+	if err != nil || result == nil {
 		h.Logger.Error("Extraction failed", zap.Error(err), zap.String("schema", schema))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Extraction failed: %v", err)})
 		return

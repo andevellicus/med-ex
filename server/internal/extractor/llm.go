@@ -71,8 +71,6 @@ func (s *ExtractorService) callLLM(prompt string) (string, error) {
 		s.logger.Error("Failed to read LLM response body", zap.Error(err))
 		return "", fmt.Errorf("failed to read LLM response body: %w", err)
 	}
-	// IMPORTANT: Log the raw body content
-	s.logger.Debug("Received raw LLM response body", zap.String("body", string(bodyBytes)))
 	if resp.StatusCode != http.StatusOK {
 		s.logger.Error("LLM server returned non-ok status",
 			zap.Int("status_code", resp.StatusCode),

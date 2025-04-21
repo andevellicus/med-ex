@@ -36,7 +36,10 @@ type EntityOccurrence struct {
 
 // ExtractionOutput maps an entity name (e.g., "Age", "Vital signs.Temperature")
 // to a slice of all occurrences found for that entity.
-type ExtractionOutput map[string][]EntityOccurrence
+type ExtractionOutput struct {
+	Text     string                        `json:"text"` // The original text used for extraction
+	Entities map[string][]EntityOccurrence `json:"entities"`
+}
 
 // ExtractorService holds dependencies
 type ExtractorService struct {
@@ -125,13 +128,13 @@ func (s *ExtractorService) GetAvailableSchemas() []string {
 }
 
 // ProcessText orchestrates the extraction process for a given text and schema.
-func (s *ExtractorService) ProcessText(schemaName string, text string) (ExtractionOutput, error) {
+func (s *ExtractorService) ProcessText(schemaName string, text string) (*ExtractionOutput, error) {
 	s.logger.Info("Starting extraction process",
 		zap.String("schemaName", schemaName),
 		zap.Int("textLength", len(text)),
 	)
 
-	// Step 0: Normalize text (like Python version)
+	// Step 0: Normalize text
 	// Replace Windows CRLF and standalone CR with Unix LF for consistency
 	normalizedText := strings.ReplaceAll(text, "\r\n", "\n")
 	normalizedText = strings.ReplaceAll(normalizedText, "\r", "\n")
@@ -164,7 +167,7 @@ func (s *ExtractorService) ProcessText(schemaName string, text string) (Extracti
 
 	// Step 4: Find entity positions
 	finalOutput, err := s.findEntityPositions(normalizedText, rawExtraction)
-	if err != nil {
+	if err != nil || finalOutput == nil {
 		// Error potentially logged in findEntityPositions, but add context here
 		s.logger.Error("Failed during entity position finding", zap.Error(err))
 		return nil, fmt.Errorf("failed during position finding: %w", err)
@@ -172,14 +175,14 @@ func (s *ExtractorService) ProcessText(schemaName string, text string) (Extracti
 
 	s.logger.Info("Extraction process completed successfully",
 		zap.String("schemaName", schemaName),
-		zap.Int("finalEntityCount", len(finalOutput)), // Count top-level entities
+		zap.Int("finalEntityCount", len(finalOutput.Entities)), // Count top-level entities
 	)
 	return finalOutput, nil
 }
 
 // findEntityPositions locates the extracted values and contexts in the text.
-func (s *ExtractorService) findEntityPositions(normalizedText string, rawExtraction RawLLMExtraction) (ExtractionOutput, error) {
-	finalOutput := make(ExtractionOutput)
+func (s *ExtractorService) findEntityPositions(normalizedText string, rawExtraction RawLLMExtraction) (*ExtractionOutput, error) {
+	finalOutput := make(map[string][]EntityOccurrence)
 	textLength := len(normalizedText) // Cache text length for bounds checking
 
 	s.logger.Info("Starting position finding process")
@@ -340,5 +343,8 @@ func (s *ExtractorService) findEntityPositions(normalizedText string, rawExtract
 	}
 
 	s.logger.Info("Finished position finding process")
-	return finalOutput, nil
+	return &ExtractionOutput{
+		Text:     normalizedText,
+		Entities: finalOutput,
+	}, nil
 }
