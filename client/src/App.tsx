@@ -13,17 +13,10 @@ import {
 import { useSchemas } from './hooks/useSchemas';
 import ControlsSidebar from './components/ControlsSidebar';
 import ResultsDisplay from './components/ResultsDisplay'; // Import the updated component
+import { ExtractionResult } from './types'; // Import the ExtractionResult type
 
 // --- Constants ---
 const sidebarWidth = 280;
-
-// --- Keep ExtractionResult interface ---
-interface ExtractionResult {
-  normalized_text: string;
-  extracted_data: Record<string, any>;
-  entity_positions: Record<string, [number, number][]>;
-  context_positions: Record<string, [number, number][]>;
-}
 
 function App() {
   // --- State remains in App ---

@@ -23,3 +23,4 @@ server/go.sum
 
 # debug binaries
 __debug_bin*
+text/

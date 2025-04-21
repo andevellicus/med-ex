@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import ClearIcon from '@mui/icons-material/Clear';
+import { ExtractionResult} from '../types';
 
 // Define props for ControlsSidebar
 interface ControlsSidebarProps {
@@ -27,7 +28,7 @@ interface ControlsSidebarProps {
   onSchemaChange: (event: SelectChangeEvent<string>) => void;
   isExtracting: boolean;
   onExtractStart: () => void;
-  onExtractComplete: (result: any) => void;
+  onExtractComplete: (result: ExtractionResult) => void;
   onExtractError: (error: string) => void;
 }
 
@@ -86,10 +87,9 @@ function ControlsSidebar({
       return;
     }
 
+    onExtractStart();
+
     try {
-      onExtractStart();
-      
-      // Create form data
       const formData = new FormData();
       formData.append('file', file);
       formData.append('schema', selectedSchema);
@@ -101,10 +101,21 @@ function ControlsSidebar({
       });
 
       if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
+        let errorMsg = `Server error: ${response.status} ${response.statusText}`;
+        try {
+            // Try to parse potential JSON error response from backend
+            const errorData = await response.json();
+            if (errorData && errorData.error) {
+                errorMsg = errorData.error; // Use specific error from backend if available
+            }
+        } catch (e) {
+            // If response is not JSON, use the status text
+            console.warn("Could not parse error response as JSON", e);
+        }
+        throw new Error(errorMsg); // Throw an error to be caught below
       }
 
-      const result = await response.json();
+      const result: ExtractionResult = await response.json();
       onExtractComplete(result);
     } catch (error) {
       console.error('Error during extraction:', error);
