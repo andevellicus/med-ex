@@ -54,6 +54,7 @@ func main() {
 	log.Info("Extractor service initialized")
 	// --- Add Handler Initialization ---
 	schemaHandler := handlers.NewSchemaHandler(extractorService, log)
+	extractHandler := handlers.NewExtractHandler(extractorService, log)
 	log.Info("Handlers initialized")
 
 	// Set Gin mode
@@ -73,6 +74,7 @@ func main() {
 	{
 
 		api.GET("/schemas", schemaHandler.GetSchemas)
+		api.POST("/extract", extractHandler.ExtractEntities)
 		// Add other API routes here
 	}
 

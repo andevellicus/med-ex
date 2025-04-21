@@ -1,8 +1,11 @@
 # Node.js dependencies
 client/node_modules/
 
-# Built files
+# Build files
 client/dist/
+
+# Misc TSX:
+client/package-lock.json
 
 # Logs
 logs/

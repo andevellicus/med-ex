@@ -26,3 +26,5 @@ func (h *SchemaHandler) GetSchemas(c *gin.Context) {
 	h.Logger.Info("Responding with available schema names", zap.Int("count", len(schemaNames)))
 	c.JSON(http.StatusOK, gin.H{"schemas": schemaNames})
 }
+
+// May be able to remove this later -- we don't need to get schemas // TODO

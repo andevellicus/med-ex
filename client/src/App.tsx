@@ -30,7 +30,7 @@ function App() {
   const { schemas, isLoadingSchemas, schemaError } = useSchemas();
   const [selectedSchema, setSelectedSchema] = useState<string>('');
   const [extractionResult, setExtractionResult] = useState<ExtractionResult | null>(null);
-  const [isExtracting] = useState<boolean>(false);
+  const [isExtracting, setIsExtracting] = useState<boolean>(false);
   const [extractionError, setExtractionError] = useState<string | null>(null);
 
   // --- Theme State & Logic (Keep as before) ---
@@ -52,6 +52,22 @@ function App() {
      setExtractionError(null);
   };
 
+  const handleExtractStart = () => {
+    setIsExtracting(true);
+    setExtractionResult(null);
+    setExtractionError(null);
+  };
+
+  const handleExtractComplete = (result: ExtractionResult) => {
+    setIsExtracting(false);
+    setExtractionResult(result);
+  };
+
+  const handleExtractError = (error: string) => {
+    setIsExtracting(false);
+    setExtractionError(error);
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -66,12 +82,13 @@ function App() {
               schemaError={schemaError}
               onSchemaChange={handleSchemaChange}
               // Pass state and handlers for controls
-              /*
               isExtracting={isExtracting}
-              inputText={inputText}
-              onTextChange={handleTextChange}
-              onSubmit={handleExtractSubmit}
-              */
+              onExtractStart={handleExtractStart}
+              onExtractComplete={handleExtractComplete}
+              onExtractError={handleExtractError}
+              //inputText={inputText}
+              //onTextChange={handleTextChange}
+              //onSubmit={handleExtractSubmit}
            />
         </Paper>
 

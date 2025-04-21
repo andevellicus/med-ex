@@ -142,12 +142,12 @@ Aneurysm thrombosed:
   items:
     type: bool
   description: Is the aneurysm thrombosed
-Aneurysm morphology:
+Aneurysm geometry:
   type: array
   items:
     type: string
-  description: Morphology of aneurysm. Options are smooth, murphy's tit, mutlilobulated
-Aneurysm Etiology:
+  description: Geometry of aneurysm. Options are smooth, murphy's tit, mutlilobulated
+Aneurysm etiology:
   type: array
   items:
     type: string
@@ -161,10 +161,10 @@ Aneurysm height:
 Aneurysm Neck:
   type: string
   description: Width of the neck of the aneurysm, in mm. For fusiform type, report maximum diameter.
-Aneurysm Location:
+Aneurysm morphology:
   type: string
-  description: Location of the aneurysm relative to parent vessel for saccular aneurysms. Options are sidewall, bifurcation, NA
-Associated Vascular Pathology:
+  description: Morphology of the aneurysm relative to parent vessel for saccular aneurysms. Options are sidewall, bifurcation, NA
+Associated vascular pathology:
   type: string
   description: What vascular malformations are associated with the aneurysm. Options are AVM, dAVF, cavernous malformation, other
 Same location:

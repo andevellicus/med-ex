@@ -21,7 +21,7 @@ type Config struct {
 		LogDir     string `mapstructure:"log_dir"`
 	} `mapstructure:"log"`
 	LLM struct {
-		ServerURL string `mapstructure:"server_url"`
+		ServerURL string `mapstructure:"server"`
 		SchemaDir string `mapstructure:"schema_dir"`
 	} `mapstructure:"llm"`
 }
@@ -50,10 +50,10 @@ func NewDefaultConfig() *Config {
 			LogDir:     "./logs",
 		},
 		LLM: struct {
-			ServerURL string "mapstructure:\"server_url\""
+			ServerURL string "mapstructure:\"server\""
 			SchemaDir string `mapstructure:"schema_dir"`
 		}{
-			ServerURL: "http://127.0.0.1",
+			ServerURL: "http://127.0.0.1:5000",
 			SchemaDir: "config/",
 		},
 	}
