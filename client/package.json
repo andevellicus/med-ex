@@ -16,6 +16,8 @@
     "@mui/icons-material": "^7.0.2",
     "@mui/material": "^7.0.2",
     "build": "^0.1.4",
+    "eslint-plugin-react-dom": "^1.48.4",
+    "eslint-plugin-react-x": "^1.48.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-dropzone": "^14.3.8",

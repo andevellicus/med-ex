@@ -159,6 +159,7 @@ Special instructions:
 - For numeric values (like scores, grades, dates, etc.), include identifying phrases or labels in the context, especially for single character values. Ensure no duplicates in the context.
 - For vital signs, extract both the value and the unit if present in the 'value' field.
 - If an entity is not present in the text, omit it from the final JSON or set its value to null or an empty list as appropriate according to the schema type.
+- **IMPORTANT:** For entities defined as objects with properties in the schema, extract each property as a separate key using dot notation (e.g., "Labs.WBC", "Labs.Hb", "Labs.Sodium"). The value for each specific lab key MUST be an array containing the extracted 'value' and 'context' objects. Do NOT group all results under a single key.
 - Structure nested entities (like Vital Signs properties) using dot notation in the JSON keys (e.g., "Vital signs.Temperature").
 - Always return the found occurrences for an entity within a JSON list (array), even if only one occurrence is found.
 

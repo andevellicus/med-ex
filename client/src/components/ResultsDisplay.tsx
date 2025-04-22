@@ -1,227 +1,237 @@
 // src/components/ResultsDisplay.tsx
-import React, { useState } from 'react'; // Add useState
-import {
-  Box,
-  Paper,
-  Typography,
-  Tabs, // Import Tabs
-  Tab,  // Import Tab
-  Alert, // Keep for errors
-  CircularProgress, // Keep for loading state
-  List,
-  ListItem,
-  ListItemText,
-  Divider
-} from '@mui/material';
-import { ExtractionResult, 
-  //Position, 
-  //Context, 
-  EntityOccurrence } from '../types';
+import React, { useRef, useEffect, useState } from 'react';
+import { Box, Paper, Typography, Alert, CircularProgress } from '@mui/material';
+import { ExtractionResult, EntityOccurrence, ScrollTarget } from '../types';
 
-
-// --- Helper Component: TabPanel (Keep or move to a utils file) ---
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-// --- Define Props for ResultsDisplay ---
+// --- Define Props ---
 interface ResultsDisplayProps {
-  extractionResult: ExtractionResult | null;
-  isExtracting: boolean;
-  extractionError: string | null;
+    extractionResult: ExtractionResult | null;
+    isExtracting: boolean;
+    extractionError: string | null;
+    scrollToTarget: ScrollTarget | null; // Receive scroll target
+    onScrollComplete: () => void; // Callback when scroll is done
 }
 
-interface HighlightedTextProps {
-  text: string;
-  entities: Record<string, EntityOccurrence[]>;
+// Define structure for combined highlights (value + context)
+interface HighlightInfo {
+    valueStart: number;
+    valueEnd: number;
+    contextStart: number;
+    contextEnd: number;
+    type: string;
+    color: string;
+    id: string;
 }
 
-const renderValue = (value: any): string => {
-  if (Array.isArray(value)) {
-    return value.join(', ');
-  }
-  if (typeof value === 'boolean') {
-    return value ? 'Yes' : 'No';
-  }
-  if (typeof value === null || typeof value === 'undefined') {
-    return 'N/A';
-  }
-  return String(value);
-};
+// --- HighlightedText Component ---
+const HighlightedText: React.FC<{
+    text: string;
+    entities: Record<string, EntityOccurrence[]>;
+    scrollToTarget: ScrollTarget | null;
+    onScrollComplete: () => void;
+}> = ({ text, entities, scrollToTarget, onScrollComplete }) => {
+    const containerRef = useRef<HTMLDivElement>(null);
+     // State to briefly highlight the scrolled-to element's context
+    const [activeContextId, setActiveContextId] = useState<string | null>(null);
 
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`results-tabpanel-${index}`}
-      aria-labelledby={`results-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>} {/* pt adds padding top */}
-    </div>
-  );
-}
+    // --- Effect to handle scrolling ---
+    useEffect(() => {
+        if (scrollToTarget && containerRef.current) {
+            // console.log("Effect: Scrolling to", scrollToTarget.id);
+            const element = document.getElementById(scrollToTarget.id); // Find the <mark> element
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
 
-function a11yProps(index: number) {
-  return {
-    id: `results-tab-${index}`,
-    'aria-controls': `results-tabpanel-${index}`,
-  };
-}
+                // Briefly highlight the context
+                const contextElementId = `context-${scrollToTarget.id}`;
+                setActiveContextId(contextElementId); // Set state to apply class/style
 
-const HighlightedText: React.FC<HighlightedTextProps> = ({ text, entities }) => {
-    // 1. Collect all positions and assign colors/types
-    const highlights: { start: number; end: number; type: string; color: string }[] = [];
-    const colors = ['#a2d2ff', '#ffafcc', '#bde0fe', '#ffc8dd', '#cdb4db']; // Example colors
+                // Optional: Flash the main entity highlight as well
+                 element.style.transition = 'outline 0.1s ease-in-out';
+                 element.style.outline = '2px solid red'; // Temporary outline
+
+                // Remove highlights after a delay
+                const timer = setTimeout(() => {
+                    setActiveContextId(null);
+                    if(element) element.style.outline = 'none'; // Remove outline
+                    // onScrollComplete(); // Signal scroll attempt finished - might cause loop if state reset triggers effect again
+                }, 1500); // Increased duration for visibility
+
+                 return () => clearTimeout(timer); // Cleanup timer on unmount or re-run
+            } else {
+                console.warn(`Element with ID "${scrollToTarget.id}" not found for scrolling.`);
+                // onScrollComplete(); // Signal even if not found
+            }
+        }
+    }, [scrollToTarget, onScrollComplete]); // Depend on scrollToTarget
+
+    // 1. Collect highlight details (value, context, color, id)
+    const highlights: HighlightInfo[] = [];
+    const colors = ['#a2d2ff', '#ffafcc', '#bde0fe', '#ffc8dd', '#cdb4db', '#ffddd2', '#fde4cf', '#fbf8cc', '#b9fbc0', '#98f5e1'];
     let colorIndex = 0;
 
     Object.entries(entities).forEach(([entityName, occurrences]) => {
         const color = colors[colorIndex % colors.length];
         colorIndex++;
-        occurrences.forEach(occ => {
-            highlights.push({ start: occ.position.start, end: occ.position.end, type: entityName, color });
-            // Optionally add context highlights too, perhaps with a different style
-            // highlights.push({ start: occ.context.position.start, end: occ.context.position.end, type: `Context: ${entityName}`, color: '#e0e0e0' }); // Example for context
+        occurrences.forEach((occ, occIndex) => {
+            const uniqueId = `entity-${entityName}-${occIndex}`;
+            highlights.push({
+                valueStart: occ.position.start,
+                valueEnd: occ.position.end,
+                contextStart: occ.context.position.start,
+                contextEnd: occ.context.position.end,
+                type: entityName,
+                color,
+                id: uniqueId,
+            });
         });
     });
 
-    // 2. Sort highlights by start position
-    highlights.sort((a, b) => a.start - b.start);
+    // 2. Create a sorted list of all unique start/end points (value & context)
+    const points = new Set<number>();
+    highlights.forEach(h => {
+        points.add(h.valueStart);
+        points.add(h.valueEnd);
+        points.add(h.contextStart);
+        points.add(h.contextEnd);
+    });
+    const sortedPoints = Array.from(points).sort((a, b) => a - b);
 
-    // 3. Build the highlighted text output
+    // 3. Build the output by iterating through segments
     const output: React.ReactNode[] = [];
-    let lastIndex = 0;
+    let currentPos = 0;
 
-    highlights.forEach((highlight, i) => {
-        // Add text before the current highlight
-        if (highlight.start > lastIndex) {
-            output.push(<span key={`text-${i}`}>{text.substring(lastIndex, highlight.start)}</span>);
+    sortedPoints.forEach(point => {
+        if (point > currentPos) {
+            // Process the segment before this point
+            const segmentText = text.substring(currentPos, point);
+            const segmentMid = currentPos + segmentText.length / 2;
+
+            let isValue = false;
+            let isContext = false;
+            let valueColor = '';
+            let contextColor = '';
+            let valueId = ''; // ID belongs to the value span
+
+            // Check which highlights cover this segment
+            for (const h of highlights) {
+                 if (segmentMid >= h.contextStart && segmentMid < h.contextEnd) {
+                    isContext = true;
+                    contextColor = h.color;
+                    // If context is active, add its ID for styling
+                    if (`context-entity-${h.type}-${highlights.findIndex(x => x.id === h.id)}` === activeContextId) {
+                       // This logic needs refinement if activeContextId uses valueId
+                    }
+                }
+                if (segmentMid >= h.valueStart && segmentMid < h.valueEnd) {
+                    isValue = true;
+                    valueColor = h.color;
+                    valueId = h.id; // Assign ID if it's the value segment
+                    break; // Prioritize value styling if overlapping
+                }
+            }
+
+            let style: React.CSSProperties = { padding: '0px 1px', margin: '0', borderRadius: '3px' };
+            const elementKey = `seg-${currentPos}-${point}`;
+             let elementId: string | undefined = undefined;
+             let contextElementId = `context-${valueId}`; // ID for the context span
+
+            if (isValue) {
+                style.backgroundColor = valueColor;
+                style.cursor = 'pointer'; // Indicate value is clickable via list
+                elementId = valueId; // Set the ID on the mark element
+            }
+            if (isContext) {
+                // Assign context ID for potential styling
+                // elementId = contextElementId; // No, ID should be on the value mark
+
+                style.border = `1.5px dashed ${contextColor}`;
+                // Add active style if this context should be highlighted
+                if (activeContextId === contextElementId) {
+                    style.border = `2px solid red`; // Example: change border if active
+                    style.fontWeight = 'bold'; // Make text bold
+                }
+                 if (isValue) style.padding = '0px 1px'; // Keep padding minimal if also a value
+                 else style.padding = '0px 1px'; // Padding for context-only span
+            }
+
+
+            if (isValue || isContext) {
+                // Use 'mark' for value, 'span' otherwise
+                 const Tag = isValue ? 'mark' : 'span';
+                output.push(
+                     <Tag key={elementKey} id={isValue ? elementId : contextElementId} style={style} title={isValue ? highlights.find(h=>h.id === valueId)?.type : undefined}>
+                        {segmentText}
+                    </Tag>
+                );
+            } else {
+                output.push(<span key={elementKey}>{segmentText}</span>); // Plain text
+            }
         }
-
-        // Add the highlighted span
-        output.push(
-            <mark
-                key={`mark-${i}`}
-                title={highlight.type} // Show entity type on hover
-                style={{ backgroundColor: highlight.color, padding: '0', margin: '0', borderRadius: '3px' }}
-            >
-                {text.substring(highlight.start, highlight.end)}
-            </mark>
-        );
-        lastIndex = highlight.end;
+        currentPos = point;
     });
 
-    // Add any remaining text after the last highlight
-    if (lastIndex < text.length) {
-        output.push(<span key="text-end">{text.substring(lastIndex)}</span>);
+    // Add any remaining text after the last point
+    if (currentPos < text.length) {
+        output.push(<span key="text-end">{text.substring(currentPos)}</span>);
     }
 
-    return <Typography component="div" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: '1.8' }}>{output}</Typography>;
+    // Wrap output in the ref'd container
+    return (
+        <div ref={containerRef}>
+            <Typography component="div" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.8 }}>
+                {output}
+            </Typography>
+        </div>
+    );
 };
 
 
-function ResultsDisplay({ extractionResult, isExtracting, extractionError }: ResultsDisplayProps) {
-  const [tabValue, setTabValue] = useState(0);
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => { setTabValue(newValue); };
+// --- Main ResultsDisplay Component ---
+function ResultsDisplay({ extractionResult, isExtracting, extractionError, scrollToTarget, onScrollComplete }: ResultsDisplayProps) {
 
-  const renderContent = () => {
-    if (isExtracting) {
+    const renderContent = () => {
+        if (isExtracting) {
+            return (
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
+                    <CircularProgress />
+                    <Typography sx={{ ml: 2 }}>Processing...</Typography>
+                </Box>
+            );
+        }
+        if (extractionError) {
+            return <Alert severity="error" sx={{ m: 2 }}>{extractionError}</Alert>;
+        }
+        if (!extractionResult || !extractionResult.text) { // Check for text specifically
+            return (
+                 <Paper variant="outlined" sx={{ p: 3, mt: 2, minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                     <Typography sx={{ color: 'text.secondary' }}>
+                         {isExtracting ? 'Loading...' : 'No results to display. Upload a file and click Extract.'}
+                    </Typography>
+                 </Paper>
+            );
+        }
+
+        // Render only the HighlightedText component directly
         return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
-                <CircularProgress />
-            </Box>
+             <Paper variant="outlined" sx={{ p: 3, mt: 2, /* Removed maxHeight, App controls scroll */ position: 'relative' /* For potential future absolute elements */ }}>
+                 <HighlightedText
+                    text={extractionResult.text}
+                    entities={extractionResult.entities}
+                    scrollToTarget={scrollToTarget}
+                    onScrollComplete={onScrollComplete}
+                 />
+             </Paper>
         );
-    }
-    if (extractionError) {
-        return <Alert severity="error" sx={{ m: 2 }}>{extractionError}</Alert>;
-    }
-    if (!extractionResult) { // Add check for null result when not loading/error
-        return <Typography sx={{ m: 2, color: 'text.secondary' }}>No results to display. Upload a file and click Extract.</Typography>;
-    }
+    };
 
-    // Display results using Tabs
     return (
-      <Box sx={{ width: '100%' }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={tabValue} onChange={handleTabChange} aria-label="Results tabs">
-            <Tab label="Entities" {...a11yProps(0)} />
-            <Tab label="Highlighted Text" {...a11yProps(1)} />
-          </Tabs>
-        </Box>
-
-        {/* --- Entities Tab --- */}
-        <TabPanel value={tabValue} index={0}>
-          <Paper variant="outlined" sx={{ p: 2, maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}>
-            {Object.keys(extractionResult.entities).length === 0 ? (
-                 <Typography variant="body2" color="text.secondary">(No entities extracted)</Typography>
-            ) : (
-              <List dense disablePadding>
-                {Object.entries(extractionResult.entities).map(([entityName, occurrences], index) => (
-                  <React.Fragment key={entityName}>
-                    {index > 0 && <Divider component="li" sx={{ my: 1 }} />}
-                    <ListItem sx={{ display: 'block', alignItems: 'flex-start', py: 1 }}> {/* Allow block display */}
-                       <ListItemText
-                          primary={<Typography variant="subtitle2" fontWeight="bold">{entityName}</Typography>}
-                          disableTypography
-                          sx={{ mb: 1 }} // Margin below title
-                       />
-                       {occurrences.length === 0 ? (
-                           <Typography variant="body2" color="text.secondary" sx={{ pl: 2 }}> (None found)</Typography>
-                       ) : (
-                           <List dense disablePadding sx={{pl: 2}}>
-                               {occurrences.map((occ, occIndex) => (
-                                   <ListItem key={occIndex} sx={{ py: 0.5, alignItems: 'flex-start' }}>
-                                       <ListItemText
-                                           primary={
-                                               <Typography component="span" variant="body2">
-                                                  <Box component="strong" sx={{ mr: 1 }}>Value:</Box> {renderValue(occ.value)}
-                                               </Typography>
-                                           }
-                                           secondary={
-                                               <Typography component="span" variant="caption" color="text.secondary">
-                                                   <Box component="strong" sx={{ mr: 1 }}>Context:</Box> "{occ.context.text}"
-                                                   <Box component="span" sx={{ ml: 1 }}>(Pos: {occ.position.start}-{occ.position.end})</Box>
-                                               </Typography>
-                                           }
-                                           sx={{ my: 0 }}
-                                       />
-                                   </ListItem>
-                               ))}
-                           </List>
-                       )}
-                    </ListItem>
-                  </React.Fragment>
-                ))}
-              </List>
-            )}
-          </Paper>
-        </TabPanel>
-
-        {/* --- Highlighted Text Tab --- */}
-        <TabPanel value={tabValue} index={1}>
-           <Paper variant="outlined" sx={{ p: 3, maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}>
-              {extractionResult.text ? (
-                 <HighlightedText text={extractionResult.text} entities={extractionResult.entities} />
-              ) : (
-                 <Typography variant="body2" color="text.secondary">(No text available for highlighting)</Typography>
-              )}
-           </Paper>
-        </TabPanel>
-      </Box>
+        <>
+            {/* Title can remain or be moved */}
+            {/* <Typography variant="h5" gutterBottom> Results </Typography> */}
+            {renderContent()}
+        </>
     );
-  };
-
-  return (
-    <>
-      <Typography variant="h5" gutterBottom> Results </Typography>
-      {renderContent()}
-    </>
-  );
 }
-
 
 export default ResultsDisplay;
