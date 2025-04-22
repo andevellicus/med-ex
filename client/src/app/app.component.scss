@@ -1,0 +1,111 @@
+
+
+// Simple spacer for the toolbar
+.toolbar-spacer {
+  flex: 1 1 auto;
+}
+
+// --- Styles for Toggle Buttons ---
+.sidebar-toggle {
+  position: absolute;
+  top: 10px; // Position near the top
+  z-index: 1000; // Ensure buttons are above sidenav content
+  border: 1px solid rgba(0, 0, 0, 0.12); // Use divider color
+  &:hover {
+    background-color: rgba(158, 158, 158, 0.5); // Slightly darker on hover
+  }
+}
+
+// Specific positioning for Controls (Left) Toggle
+.controls-toggle {
+  &.open {
+    // Position near the right edge of the *open* left sidebar
+    left: 8px; // Adjust 20px based on button size/overlap
+  }
+  &.closed {
+    // Position near the left edge of the *container* when closed
+    left: 8px;
+  }
+}
+
+// Specific positioning for Entities (Right) Toggle
+.entities-toggle {
+  // Position based on open/closed state using classes
+  &.open {
+    right: 8px; // Adjust 20px based on button size/desired overlap
+  }
+  &.closed {
+    right: 8px; // Position near the right edge when closed
+  }
+  // Example: Flip the 'menu_open' icon for the right sidebar if needed
+  &.open mat-icon {
+    transform: scaleX(-1); // Uncomment if you want the icon mirrored
+  }
+}
+
+// --- Angular Split Layout Styles ---
+.app-split-container {
+  // Height should fill space below toolbar (adjust 64px if your toolbar height differs)
+  height: calc(100vh - 64px);
+  width: 100%;
+  // Optional: Set a background for the entire split area if needed
+  // background-color: #f0f0f0;
+}
+
+// Optional: Common styles for the split areas
+.sidebar-area {
+   // Example: Add background or borders if desired
+   // background-color: #ffffff;
+}
+.controls-area {
+   // Specific styles for controls area, e.g., border
+   border-right: 1px solid rgba(0, 0, 0, 0.12);
+}
+.entities-area {
+  // Specific styles for entities area, e.g., border
+  border-left: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.main-content-area {
+   // Example: background for the main content panel
+   // background-color: #fafafa;
+   // Padding is applied via the inner div in the HTML template now
+}
+
+as-split-area {
+  transition: flex-basis 0.225s ease-in-out; // Apply transition to the size change
+}
+
+
+// Style the draggable splitter handle (gutter)
+// You might need ::ng-deep or disable view encapsulation in app.component.ts
+// if these styles don't apply directly.
+as-split-gutter {
+  background-color: #e0e0e0; // Light grey gutter
+  border-left: 1px solid #bdbdbd;
+  border-right: 1px solid #bdbdbd;
+  // Make gutter thinner if desired
+  flex-basis: 6px !important;
+
+  &:hover {
+    background-color: #bdbdbd; // Darker grey on hover
+  }
+}
+
+// Styles to hide scrollbars on elements with the .scrollable-content class
+.scrollable-content {
+  // --- Hiding Scrollbars ---
+
+  // For Webkit browsers (Chrome, Safari, Edge Chromium)
+  &::-webkit-scrollbar {
+    display: none; // Hide scrollbar UI
+    width: 0;      // Force width to 0
+    height: 0;     // Force height to 0
+  }
+
+  // For Firefox
+  scrollbar-width: none; // Hide scrollbar UI
+
+  // For IE/Edge (older versions - might not be necessary)
+  -ms-overflow-style: none; // Hide scrollbar UI
+}

@@ -1,4 +1,4 @@
-// src/app/core/models/api-types.ts
+// src/app/core/models/types.ts
 export interface Position {
   start: number;
   end: number;

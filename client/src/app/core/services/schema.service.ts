@@ -4,8 +4,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { BehaviorSubject, Observable, throwError } from 'rxjs';
 import { catchError, finalize, tap, retry } from 'rxjs/operators';
-import { SchemasApiResponse } from '../models/types';
-
+import { SchemasApiResponse } from '../models/types'; // Adjust the import path as necessary
 
 @Injectable({
   providedIn: 'root' // Makes the service a singleton available app-wide

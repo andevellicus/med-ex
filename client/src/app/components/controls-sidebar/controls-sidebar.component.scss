@@ -1,0 +1,115 @@
+// src/app/components/controls-sidebar/controls-sidebar.component.scss
+
+.sidebar-container {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  height: 100%; // Ensure container takes height if needed
+}
+
+.full-width {
+  width: 100%;
+}
+
+.file-upload-section {
+  margin-top: 24px; // Space above upload section
+}
+
+.file-upload-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500; // Make label slightly bolder
+  font-size: 0.9rem;
+  color: rgba(0, 0, 0, 0.6); // Match Material label color
+}
+
+.dropzone {
+  border: 2px dashed rgba(0, 0, 0, 0.12); // Dashed border
+  border-radius: 4px;
+  padding: 16px;
+  min-height: 100px; // Minimum height
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease-in-out, background-color 0.2s ease-in-out;
+  background-color: rgba(0, 0, 0, 0.02); // Slight background tint
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.3);
+  }
+
+  &.dropzone-active {
+    // Style when dragging over
+    border-color: #2196f3; // Example: Blue border (adjust to your theme)
+    background-color: rgba(33, 150, 243, 0.1);
+  }
+}
+
+.upload-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: rgba(0, 0, 0, 0.54); // Material secondary text color
+}
+
+.upload-icon {
+  font-size: 40px; // Larger icon
+  width: 40px;
+  height: 40px;
+  margin-bottom: 8px;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  padding: 8px 0; // Padding around file info
+}
+
+.file-icon {
+  margin-right: 12px;
+  color: grey; // Or use theme color
+}
+
+.file-details {
+  flex-grow: 1;
+  overflow: hidden; // Prevent long names breaking layout
+}
+
+.file-name {
+  display: block;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; // Add ellipsis for long names
+}
+
+.file-size {
+  display: block;
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.54);
+}
+
+.clear-button {
+  margin-left: 8px;
+  // Reduce default padding/size if needed
+}
+
+.file-error-message {
+  margin-top: 8px;
+  font-size: 0.8rem; // Smaller font for error
+}
+
+.submit-section {
+  margin-top: auto; // Push submit button to the bottom
+  padding-top: 16px; // Add some space above the button
+}
+
+.submit-spinner {
+  margin-right: 8px;
+}

@@ -78,7 +78,7 @@ func main() {
 		// Add other API routes here
 	}
 
-	clientDistPath := filepath.Join(rootPath, "client", "dist")
+	clientDistPath := filepath.Join(rootPath, "client", "dist", "client", "browser")
 	router.Use(staticFS(clientDistPath))
 
 	router.Run(":" + cfg.Server.Port) // Use the port from the config

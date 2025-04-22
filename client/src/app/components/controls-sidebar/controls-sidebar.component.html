@@ -1,0 +1,79 @@
+<div class="sidebar-container">
+  <mat-form-field appearance="fill" class="full-width">
+    <mat-label>Schema</mat-label>
+    <mat-select
+      [formControl]="selectedSchemaControl"
+      [disabled]="(isLoadingSchemas$ | async) || !(schemas$ | async)?.length"
+    >
+      <mat-option *ngIf="isLoadingSchemas$ | async" disabled>
+        <mat-spinner diameter="20" style="display: inline-block; margin-right: 8px;"></mat-spinner> Loading...
+      </mat-option>
+
+      <mat-option *ngIf="!(isLoadingSchemas$ | async) && !(schemas$ | async)?.length && !(schemaError$ | async)" disabled>
+        No schemas found
+      </mat-option>
+
+       <mat-option *ngIf="!(isLoadingSchemas$ | async) && (schemaError$ | async)" disabled>
+         Error loading schemas
+       </mat-option>
+
+      <mat-option *ngFor="let schemaName of schemas$ | async" [value]="schemaName">
+        {{ schemaName }}
+      </mat-option>
+    </mat-select>
+    <mat-error *ngIf="schemaError$ | async as errorMsg">{{ errorMsg }}</mat-error>
+  </mat-form-field>
+
+  <div class="file-upload-section">
+    <label class="file-upload-label">Upload Text File (.txt)</label>
+    <div
+      class="dropzone"
+      [class.dropzone-active]="isDraggingOver"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)"
+      (drop)="onFileDrop($event)"
+      (click)="fileInput.click()"
+    >
+      <input
+        #fileInput
+        type="file"
+        accept=".txt"
+        (change)="onFileSelected($event)"
+        hidden
+      />
+
+      <ng-container *ngIf="selectedFile; else uploadPrompt">
+        <div class="file-info">
+           <mat-icon class="file-icon">description</mat-icon> <div class="file-details">
+             <span class="file-name">{{ selectedFile.name }}</span>
+             <span class="file-size">{{ (selectedFile.size / 1024).toFixed(1) }} KB</span>
+           </div>
+           <button mat-icon-button (click)="clearFile($event)" aria-label="Clear selected file" class="clear-button">
+             <mat-icon>close</mat-icon>
+           </button>
+         </div>
+      </ng-container>
+      <ng-template #uploadPrompt>
+         <div class="upload-prompt">
+           <mat-icon class="upload-icon">upload_file</mat-icon>
+           <span>{{ dropzoneText }}</span>
+         </div>
+      </ng-template>
+    </div>
+     <mat-error *ngIf="fileError" class="file-error-message">{{ fileError }}</mat-error>
+  </div>
+
+  <div class="submit-section">
+    <button
+      mat-raised-button
+      color="primary"
+      class="submit-button full-width"
+      [disabled]="!selectedFile || !selectedSchemaControl.value || isExtracting"
+      (click)="submitExtraction()"
+    >
+      <mat-spinner *ngIf="isExtracting" diameter="20" class="submit-spinner"></mat-spinner>
+      {{ isExtracting ? 'Processing...' : 'Extract Entities' }}
+    </button>
+  </div>
+
+</div>

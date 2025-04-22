@@ -35,12 +35,7 @@
               "@angular/material/prebuilt-themes/azure-blue.css",
               "src/styles.scss"
             ],
-            "scripts": [],
-            "server": "src/main.server.ts",
-            "prerender": true,
-            "ssr": {
-              "entry": "src/server.ts"
-            }
+            "scripts": []
           },
           "configurations": {
             "production": {
@@ -107,6 +102,6 @@
     }
   },
   "cli": {
-    "analytics": "c7fec385-d0ef-443b-b15a-fb0f2d1f9214"
+    "analytics": false
   }
 }
