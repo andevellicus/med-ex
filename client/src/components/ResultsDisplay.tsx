@@ -107,7 +107,7 @@ const HighlightedText: React.FC<HighlightedTextProps> = ({ text, entities }) => 
             <mark
                 key={`mark-${i}`}
                 title={highlight.type} // Show entity type on hover
-                style={{ backgroundColor: highlight.color, padding: '0.1em 0.2em', margin: '0 0.1em', borderRadius: '3px' }}
+                style={{ backgroundColor: highlight.color, padding: '0', margin: '0', borderRadius: '3px' }}
             >
                 {text.substring(highlight.start, highlight.end)}
             </mark>

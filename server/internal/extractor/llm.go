@@ -162,6 +162,31 @@ Special instructions:
 - Structure nested entities (like Vital Signs properties) using dot notation in the JSON keys (e.g., "Vital signs.Temperature").
 - Always return the found occurrences for an entity within a JSON list (array), even if only one occurrence is found.
 
+1.  **JSON Structure:** The output MUST be a single JSON object.
+    * The keys of this object MUST be the entity names from the schema (using dot notation for nested properties, e.g., "Vital signs.Temperature").
+    * The value for each key MUST be a JSON array (list) '[...]'.
+    * Each element within the array MUST be a JSON object '{...}' representing one occurrence of the entity found in the text.
+    * Each occurrence object MUST contain exactly two keys:
+        * '"value"': The exact text extracted from the document for that entity occurrence.
+        * '"context"': A short, unique surrounding phrase or sentence from the text where the value was found. This context MUST be sufficient to uniquely locate the value in the original text using pattern matching (typically 3-5 words before and after the value). Ensure context itself does not contain duplicates where possible.
+
+2.  **Comma Placement (VERY IMPORTANT):**
+    * Inside the main JSON object '{}', commas (',') MUST ONLY be placed *between* the '"entity.name": [...]' pairs.
+    * Do **NOT** place a comma after the last key-value pair in the main object.
+    * Do **NOT** place a comma or any other character after the closing square bracket ']' of an entity's array value if it's part of the main object structure.
+
+3.  **Handling Entities:**
+    * **Always Use Arrays:** Even if only one occurrence of an entity is found, its value MUST be an array containing a single occurrence object '[ { "value": ..., "context": ... } ]'.
+    * **Missing Entities:** If an entity defined in the schema is *not* found in the text, its corresponding key MUST have an empty array '[]' as its value in the output JSON. Do *not* omit the key entirely.
+    * **Dot Notation:** Use dot notation strictly as defined in the schema for nested entities (e.g., "Labs.WBC", "Vital signs.Blood pressure").
+
+4.  **JSON Formatting Rules:**
+    * Use double quotes ('"') for all keys and string values.
+    * Use 'true' or 'false' (lowercase) for boolean values.
+    * Use standard number formats for numeric values.
+    * Use 'null' (lowercase) if a value is explicitly null (though prefer extracting actual text or using '[]' for missing entities as per rule 3).
+
+
 Return ONLY a single valid JSON object containing the extracted entities and their contexts. The JSON object should follow this structure:
 
 %s
@@ -191,7 +216,7 @@ Return ONLY a single valid JSON object containing the extracted entities and the
   // ... other entities, always as key: [ {value:..., context:...}, ... ]
 }
 %s
-
+Generate ONLY the single, valid JSON object containing the extracted data.
 Use standard JSON format: double quotes for all keys and string values, 'true'/'false' for booleans, 'null' for null values. Do NOT include %s%s markers or any other text outside the main JSON object in your response.
 <|im_end|>
 <|im_start|>assistant

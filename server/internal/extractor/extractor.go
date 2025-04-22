@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/andevellicus/webapp/internal/config"
 	"go.uber.org/zap"
@@ -264,22 +265,28 @@ func (s *ExtractorService) findEntityPositions(normalizedText string, rawExtract
 				} else {
 					// For each context match, try to find the value *within* it
 					for _, contextMatch := range contextMatches {
-						contextStart, contextEnd := contextMatch[0], contextMatch[1]
-						contextTextSpan := normalizedText[contextStart:contextEnd]
+						contextByteStart, contextByteEnd := contextMatch[0], contextMatch[1] // BYTE indices of context
+						contextTextSpan := normalizedText[contextByteStart:contextByteEnd]
 
 						// Find the first match of the value *within this specific context span*
-						valueMatch := valueRegex.FindStringIndex(contextTextSpan)
+						valueMatchRelIndices := valueRegex.FindStringIndex(contextTextSpan) // Relative BYTE indices within context span
 
-						if valueMatch != nil {
-							valueStart := contextStart + valueMatch[0]
-							valueEnd := contextStart + valueMatch[1]
+						if valueMatchRelIndices != nil {
+							// Calculate absolute BYTE indices in normalizedText for the full value match
+							valueByteStart := contextByteStart + valueMatchRelIndices[0]
+							valueByteEnd := contextByteStart + valueMatchRelIndices[1] // End index for the full value (e.g., "98.7°F")
 
+							// --- Convert BYTE indices to RUNE indices ---
+							runeHighlightStart := byteIndexToRuneIndex(normalizedText, valueByteStart)
+							runeHighlightEnd := byteIndexToRuneIndex(normalizedText, valueByteEnd)
+							runeContextStart := byteIndexToRuneIndex(normalizedText, contextByteStart)
+							runeContextEnd := byteIndexToRuneIndex(normalizedText, contextByteEnd)
 							eo := EntityOccurrence{
 								Value:    occurrence.Value, // Store original typed value
-								Position: Position{Start: valueStart, End: valueEnd},
+								Position: Position{Start: runeHighlightStart, End: runeHighlightEnd},
 								Context: Context{
 									Text:     contextStr, // Store the context string provided by LLM
-									Position: Position{Start: contextStart, End: contextEnd},
+									Position: Position{Start: runeContextStart, End: runeContextEnd},
 								},
 							}
 							finalOutput[entityName] = append(finalOutput[entityName], eo)
@@ -307,19 +314,23 @@ func (s *ExtractorService) findEntityPositions(normalizedText string, rawExtract
 				if len(valueMatches) > 0 {
 					s.logger.Debug("Value found via fallback search", zap.String("entityName", entityName), zap.String("value", valueStr))
 					for _, valueMatch := range valueMatches {
-						valueStart, valueEnd := valueMatch[0], valueMatch[1]
+						valueByteStart, valueByteEnd := valueMatch[0], valueMatch[1] // BYTE indices
 
-						// Create approximate context position (like Python's +/- 20)
-						// Use the LLM's context string, but position from fallback
-						approxContextStart := max(0, valueStart-20)
-						approxContextEnd := min(textLength, valueEnd+20)
+						approxContextByteStart := max(0, valueByteStart-20)
+						approxContextByteEnd := min(textLength, valueByteEnd+20)
+
+						// --- Convert Fallback BYTE indices to RUNE indices ---
+						runeHighlightStart := byteIndexToRuneIndex(normalizedText, valueByteStart)
+						runeHighlightEnd := byteIndexToRuneIndex(normalizedText, valueByteEnd)
+						runeApproxContextStart := byteIndexToRuneIndex(normalizedText, approxContextByteStart)
+						runeApproxContextEnd := byteIndexToRuneIndex(normalizedText, approxContextByteEnd)
 
 						eo := EntityOccurrence{
 							Value:    occurrence.Value,
-							Position: Position{Start: valueStart, End: valueEnd},
+							Position: Position{Start: runeHighlightStart, End: runeHighlightEnd},
 							Context: Context{
-								Text:     contextStr,                                                 // Still use context text from LLM
-								Position: Position{Start: approxContextStart, End: approxContextEnd}, // Use approximate position
+								Text:     contextStr,                                                         // Still use context text from LLM
+								Position: Position{Start: runeApproxContextStart, End: runeApproxContextEnd}, // Use approximate position
 							},
 						}
 						finalOutput[entityName] = append(finalOutput[entityName], eo)
@@ -347,4 +358,18 @@ func (s *ExtractorService) findEntityPositions(normalizedText string, rawExtract
 		Text:     normalizedText,
 		Entities: finalOutput,
 	}, nil
+}
+
+// byteIndexToRuneIndex converts a byte index within a UTF-8 string to a rune index (character count).
+// It handles potential out-of-bounds indices gracefully.
+func byteIndexToRuneIndex(text string, byteIdx int) int {
+	if byteIdx <= 0 {
+		return 0 // Rune index at the start is always 0
+	}
+	// Clamp byteIdx to be within the valid range of the string length
+	if byteIdx > len(text) {
+		byteIdx = len(text)
+	}
+	// Count the number of runes (characters) in the substring up to the byte index
+	return utf8.RuneCountInString(text[:byteIdx])
 }
