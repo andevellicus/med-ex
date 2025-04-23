@@ -1,9 +1,8 @@
 // src/app/core/services/schema.service.ts
-
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { BehaviorSubject, Observable, throwError, of } from 'rxjs';
-import { catchError, finalize, tap, retry } from 'rxjs/operators';
+import { catchError, finalize, tap, retry, map } from 'rxjs/operators';
 import { SchemasApiResponse, SchemaDefinition, SchemaProperty} from '../models/types'; // Adjust the import path as necessary
 
 @Injectable({
@@ -16,7 +15,7 @@ export class SchemaService {
   private schemasSubject = new BehaviorSubject<string[]>([]);
   private isLoadingSubject = new BehaviorSubject<boolean>(false); // Start not loading
   private errorSubject = new BehaviorSubject<string | null>(null);
-  private schemaDefinitionsCache = new Map<string, SchemaDefinition>();
+  private schemaDefinitionsCache = new Map<string, SchemaDefinition | null>(); 
 
   // Public Observables that components can subscribe to.
   // The '$' suffix is a common convention for Observables in Angular.
@@ -73,51 +72,24 @@ export class SchemaService {
             return of(this.schemaDefinitionsCache.get(schemaName)!);
         }
 
-        // *** Placeholder/Mock ***
-        // In a real scenario, you'd fetch this from '/api/schema/{schemaName}'
-        // or load it from static assets included in the build.
-        console.warn(`Schema definition for "${schemaName}" not implemented. Using mock/empty.`);
-        // Example Mock for 'general' schema (replace with actual fetch later)
-         if (schemaName === 'general') {
-            const mockDef: SchemaDefinition = {
-                "Age": { type: "number" },
-                "Gender": { type: "string" },
-                "Past medical history": { type: "array", items: { type: "string" } },
-                "Vital signs": { type: "object", properties: {
-                     "Temperature": { type: "string"},
-                     "Heart rate": { type: "string"},
-                     "Blood pressure": { type: "string"},
-                     "Respiratory rate": { type: "string"},
-                     "O2 Sat": { type: "string"}
-                }},
-                "Labs": { type: "object", properties: {
-                    "WBC": { type: "number" },
-                    "Hb": { type: "number" },
-                     // ... other labs
-                }}
-                // ... add more based on general.yaml
-            };
-             this.schemaDefinitionsCache.set(schemaName, mockDef);
-             return of(mockDef);
-         }
-         // Add mocks for other schemas if needed for testing
-
-        return of(null); // Return null if not mocked/fetched
-        // --- End Placeholder ---
-
-        /* // Example of fetching from backend (requires backend endpoint)
+        this.isLoadingSubject.next(true); // Set loading state
         return this.http.get<SchemaDefinition>(`/api/schema/${schemaName}`).pipe(
             tap(definition => {
-                if (definition) {
+                if (definition && Object.keys(definition).length > 0) {
                     this.schemaDefinitionsCache.set(schemaName, definition);
+                } else {
+                  this.schemaDefinitionsCache.set(schemaName, null);
                 }
             }),
             catchError(error => {
                 console.error(`Error fetching schema definition for ${schemaName}:`, error);
+                this.errorSubject.next(`Failed to load schema definition for ${schemaName}.`); // Update error state
                 return of(null); // Return null on error
+            }),
+            finalize(() => {
+                this.isLoadingSubject.next(false); // Reset loading state
             })
         );
-        */
     }
 
    // --- NEW: Helper to get flat list of entity types from definition ---

@@ -77,3 +77,11 @@ func loadSchemasFromDir(dirPath string, logger *zap.Logger) (map[string]Schema, 
 	sort.Strings(schemaNames)
 	return schemas, schemaNames, nil
 }
+
+// GetSchemaDefinitionByName retrieves the definition of a specific schema.
+func (s *ExtractorService) GetSchemaDefinitionByName(schemaName string) (Schema, bool) {
+	schema, exists := s.schemas[schemaName]
+	// Return a copy or the original based on whether you need isolation
+	// For now, returning the original map reference is likely fine.
+	return schema, exists
+}
