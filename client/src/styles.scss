@@ -2,3 +2,9 @@
 
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+
+// Styles for the visual icon inside the gutter
+.as-split-gutter-icon {
+  opacity: 0.5;             // Example: Make it semi-transparent
+}

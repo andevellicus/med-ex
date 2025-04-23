@@ -20,38 +20,51 @@
     (click)="toggleEntitiesSidebar()"
     [matTooltip]="isEntitiesSidebarOpen ? 'Collapse Entities' : 'Expand Entities'"
     aria-label="Toggle Entities Sidebar">
-    <mat-icon>{{ isEntitiesSidebarOpen ? 'menu_open' : 'menu' }}</mat-icon> </button>
+    <mat-icon>{{ isEntitiesSidebarOpen ? 'menu_open' : 'menu' }}</mat-icon>
+  </button>
 </mat-toolbar>
 
 <as-split direction="horizontal" class="app-split-container" [useTransition]="true">
   <as-split-area
-    [size]="20"
+    [size]="15"
     [minSize]="5"
     [maxSize]="40"
     [visible]="isControlsSidebarOpen"
-    >
+    class="controls-area sidebar-area">
     <div class="scrollable-content" style="height: 100%; overflow: auto;">
-        <app-controls-sidebar></app-controls-sidebar>
-    </div>
-  </as-split-area>
-
-  <as-split-area class="scrollable-content"
-    [size]="55"
-    [minSize]="20"
-    >
-    <div style="height: 100%; overflow: auto; padding: 16px;">
-      <app-results-display></app-results-display>
+        <app-controls-sidebar
+            [isExtracting]="(isExtracting$ | async) ?? false"
+            (extractRequested)="handleExtractionRequest($event)">
+        </app-controls-sidebar>
     </div>
   </as-split-area>
 
   <as-split-area
-    [size]="25"
+    [size]="65"
+    [minSize]="20"
+    class="main-content-area scrollable-content">
+    <div class="scrollable-content" style="height: 100%; overflow: auto; padding: 16px;">
+        <app-results-display 
+            [extractionResult]="extractionResult$ | async"
+            [isExtracting]="(isExtracting$ | async) ?? false"
+            [extractionError]="extractionError$ | async"
+            [scrollToTarget]="scrollToTarget">
+            </app-results-display>
+    </div>
+  </as-split-area>
+
+  <as-split-area
+    [size]="20"
     [minSize]="5"
     [maxSize]="40"
     [visible]="isEntitiesSidebarOpen"
-    >
+    class="entities-area sidebar-area">
      <div class="scrollable-content" style="height: 100%; overflow: auto;">
-        <app-entities-sidebar></app-entities-sidebar>
+        <app-entities-sidebar
+            [extractionResult]="extractionResult$ | async"
+            [isExtracting]="(isExtracting$ | async) ?? false"
+            (entityClicked)="handleScrollToEntity($event)">
+           </app-entities-sidebar>
      </div>
   </as-split-area>
 

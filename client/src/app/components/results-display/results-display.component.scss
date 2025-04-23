@@ -1,0 +1,132 @@
+/* src/app/components/results-display/results-display.component.scss */
+
+.results-container {
+  position: relative; // Needed for absolute positioning of loading overlay
+  min-height: 200px; // Ensure container has some height initially
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.7); // Semi-transparent white overlay
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 10; // Ensure it's above other content
+
+  p {
+    margin-top: 16px;
+    font-weight: 500;
+  }
+}
+
+// Add styles for dark mode if needed
+body.dark-theme .loading-overlay {
+    background-color: rgba(66, 66, 66, 0.7); // Darker overlay for dark theme
+}
+
+
+.error-panel {
+    margin-bottom: 16px;
+    background-color: #fff0f0; // Light red background for error panel
+    border: 1px solid #ffc0c0;
+
+    mat-icon {
+        margin-right: 8px;
+    }
+}
+
+body.dark-theme .error-panel {
+    background-color: #4d2f2f;
+    border: 1px solid #7c4a4a;
+}
+
+.results-card, .no-results-card {
+  // Add any specific card styling if needed
+}
+
+.extracted-text {
+  white-space: pre-wrap; // Preserve whitespace and wrap text
+  word-break: break-word; // Break long words
+  font-family: monospace; // Optional: Use monospace for pre-like formatting
+  line-height: 1.6;
+  padding: 16px; // Add padding inside the pre area
+  background-color: rgba(0,0,0,0.02); // Slight background for text area
+  border-radius: 4px;
+}
+
+body.dark-theme .extracted-text {
+    background-color: rgba(255,255,255,0.05);
+}
+
+.placeholder-text {
+    color: rgba(0,0,0,0.54);
+    text-align: center;
+    padding: 40px 20px;
+}
+
+body.dark-theme .placeholder-text {
+    color: rgba(255,255,255,0.7);
+}
+
+// Styles for highlighted text will be added later
+mark {
+  background-color: yellow; // Basic highlight
+  padding: 0.1em 0.2em;
+  border-radius: 3px;
+  cursor: pointer;
+  // Add more specific styles based on entity type later
+}
+
+
+.highlighted-text-container {
+  white-space: pre-wrap; // Preserve whitespace and wrap text
+  word-break: break-word; // Break long words
+  font-family: monospace; // Optional: Use monospace for pre-like formatting
+  line-height: 1.8; // Increased line-height for better readability with borders
+  padding: 16px;
+  background-color: rgba(0,0,0,0.02);
+  border-radius: 4px;
+
+  span, mark {
+    display: inline; // Keep segments flowing inline
+    padding: 0px 1px; // Minimal horizontal padding
+    margin: 0;
+    border-radius: 3px;
+  }
+
+  mark.entity-value {
+    // background-color is set by [style.backgroundColor]
+     cursor: pointer; // Indicate it's interactive (for future scrolling)
+  }
+
+  span.entity-context {
+    // border is set by [style.border]
+    // background-color: transparent !important; // Ensure context doesn't get accidental background
+  }
+}
+
+body.dark-theme .highlighted-text-container {
+    background-color: rgba(255,255,255,0.05);
+    span, mark {
+       // Adjust text color if needed for dark theme highlights
+    }
+}
+
+// Style for the temporary highlight on scroll
+mark.entity-value.active-highlight {
+  outline: 2px solid red; // Example: Red outline
+  outline-offset: 1px;
+  // Or use box-shadow for a different effect
+  // box-shadow: 0 0 0 2px red;
+  transition: outline 0.2s ease-in-out; // Smooth transition
+}
+
+// Ensure context spans don't interfere visually if outline is used
+span.entity-context {
+    position: relative; // Allows z-index if needed, but usually not required
+}

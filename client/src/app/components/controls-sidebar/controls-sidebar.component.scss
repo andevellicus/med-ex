@@ -13,6 +13,7 @@
 
 .file-upload-section {
   margin-top: 24px; // Space above upload section
+  margin-bottom: 16px; // Space below upload section
 }
 
 .file-upload-label {
@@ -106,7 +107,7 @@
 }
 
 .submit-section {
-  margin-top: auto; // Push submit button to the bottom
+  margin-top: 16px; // Push submit button to the bottom
   padding-top: 16px; // Add some space above the button
 }
 

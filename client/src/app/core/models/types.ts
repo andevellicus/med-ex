@@ -26,4 +26,9 @@ export interface SchemasApiResponse {
   schemas: string[];
 }
 
+export interface ScrollTarget {
+  id: string;
+  timestamp: number; // To ensure change detection even if ID is the same
+}
+
 // Other types like ScrollTarget, NestedEntity if used elsewhere

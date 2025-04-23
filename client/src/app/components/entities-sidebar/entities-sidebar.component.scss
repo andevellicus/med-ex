@@ -1,0 +1,139 @@
+/* src/app/components/entities-sidebar/entities-sidebar.component.scss */
+
+.entities-container {
+  padding: 16px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-title {
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: rgba(0, 0, 0, 0.54);
+  gap: 10px; // Space between spinner and text
+}
+
+.no-entities-message {
+  padding: 20px;
+  text-align: center;
+  color: rgba(0, 0, 0, 0.54);
+}
+
+body.dark-theme {
+  .loading-indicator, .no-entities-message {
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+.entity-list {
+  flex-grow: 1; // Allow list to take remaining space
+  overflow-y: auto; // Allow scrolling within the list
+  padding-top: 8px !important; // Add some space above the first item
+
+   // --- Hiding Scrollbars --- (Same as before)
+  &::-webkit-scrollbar { display: none; width: 0; height: 0; }
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.entity-item {
+  height: 36px !important; // Adjust height for density
+  cursor: default; // Default cursor for parent items
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  padding-right: 8px !important; // Reduce right padding
+
+  .mat-mdc-list-item-unscoped-content { // Target inner content wrapper
+      display: flex;
+      align-items: center;
+      width: 100%; // Ensure it takes full width
+  }
+}
+
+.expand-button {
+    width: 28px; // Consistent size
+    height: 28px;
+    line-height: 28px;
+    margin-right: 4px; // Space before text
+}
+
+.indent-placeholder {
+    width: 28px; // Match button size for alignment
+    height: 28px;
+    margin-right: 4px;
+}
+
+.entity-name {
+  font-weight: bold;
+  font-size: 0.9rem;
+  flex-grow: 1; // Allow name to take available space
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &.structural { // Style for nodes that only group others
+     font-weight: normal;
+  }
+}
+
+.entity-count {
+  font-weight: normal;
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.54);
+  margin-left: 4px;
+}
+
+body.dark-theme .entity-count {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+
+.node-content {
+    // Optional: slight background or border for nested content area
+    // border-left: 1px solid rgba(0, 0, 0, 0.08);
+    // margin-left: 14px; // Align with icon center
+}
+
+.occurrence-item {
+  height: 28px !important; // Smaller height for occurrences
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.87);
+  cursor: pointer;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  padding-right: 8px !important;
+
+  &:hover {
+      background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  .mat-mdc-list-item-unscoped-content { // Target inner content wrapper
+      display: flex;
+      align-items: center;
+      width: 100%; // Ensure it takes full width
+  }
+}
+
+body.dark-theme .occurrence-item {
+    color: rgba(255, 255, 255, 0.87);
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+    }
+}
+
+
+.occurrence-value {
+   white-space: nowrap;
+   overflow: hidden;
+   text-overflow: ellipsis;
+   padding-left: 28px; // Indent text past where icon would be
+}

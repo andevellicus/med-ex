@@ -1,1 +1,58 @@
-<p>entities-sidebar works!</p>
+<div class="entities-container">
+  <h3 class="sidebar-title">Extracted Entities</h3>
+  <mat-divider></mat-divider>
+
+  <div *ngIf="isExtracting" class="loading-indicator">
+    <mat-progress-spinner diameter="30" mode="indeterminate"></mat-progress-spinner>
+    <span>Loading Entities...</span>
+  </div>
+
+  <div *ngIf="!isExtracting && !hasEntities" class="no-entities-message">
+    No entities extracted yet.
+  </div>
+
+  <mat-list *ngIf="!isExtracting && hasEntities" dense class="entity-list">
+    <ng-container *ngFor="let entity of objectValues(nestedEntities)">
+      <ng-container *ngTemplateOutlet="entityNode; context: { $implicit: entity, level: 0 }"></ng-container>
+    </ng-container>
+  </mat-list>
+
+</div>
+
+<ng-template #entityNode let-node let-level="level">
+  <mat-list-item class="entity-item" [style.padding-left.px]="level * 16">
+    <button mat-icon-button *ngIf="canExpand(node); else indentPlaceholder"
+             (click)="toggleNode(node)"
+             class="expand-button"
+             [matTooltip]="node.isExpanded ? 'Collapse' : 'Expand'"
+             aria-label="Toggle expansion">
+       <mat-icon>{{ node.isExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+     </button>
+     <ng-template #indentPlaceholder><div class="indent-placeholder"></div></ng-template>
+
+    <span class="entity-name" [class.structural]="isStructuralOnly(node)">
+      {{ node.name }}
+      <span *ngIf="node.occurrences && !isStructuralOnly(node)" class="entity-count">
+        ({{ node.occurrences.length }})
+      </span>
+    </span>
+  </mat-list-item>
+
+  <div *ngIf="node.isExpanded && canExpand(node)" class="node-content">
+    <mat-list dense *ngIf="node.occurrences?.length">
+      <mat-list-item *ngFor="let occ of node.occurrences"
+                     class="occurrence-item"
+                     [style.padding-left.px]="(level + 1) * 16"
+                     (click)="onOccurrenceClick(occ.id)"
+                     matTooltip="Click to scroll to text">
+        <span class="occurrence-value">{{ renderValue(occ.value) }}</span>
+      </mat-list-item>
+    </mat-list>
+
+    <ng-container *ngIf="node.children">
+      <ng-container *ngFor="let child of objectValues(node.children)">
+         <ng-container *ngTemplateOutlet="entityNode; context: { $implicit: child, level: level + 1 }"></ng-container>
+      </ng-container>
+    </ng-container>
+  </div>
+</ng-template>

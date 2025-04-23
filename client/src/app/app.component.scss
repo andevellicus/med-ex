@@ -76,22 +76,6 @@ as-split-area {
   transition: flex-basis 0.225s ease-in-out; // Apply transition to the size change
 }
 
-
-// Style the draggable splitter handle (gutter)
-// You might need ::ng-deep or disable view encapsulation in app.component.ts
-// if these styles don't apply directly.
-as-split-gutter {
-  background-color: #e0e0e0; // Light grey gutter
-  border-left: 1px solid #bdbdbd;
-  border-right: 1px solid #bdbdbd;
-  // Make gutter thinner if desired
-  flex-basis: 6px !important;
-
-  &:hover {
-    background-color: #bdbdbd; // Darker grey on hover
-  }
-}
-
 // Styles to hide scrollbars on elements with the .scrollable-content class
 .scrollable-content {
   // --- Hiding Scrollbars ---

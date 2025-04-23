@@ -1,1 +1,50 @@
-<p>results-display works!</p>
+<div class="results-container">
+  <div *ngIf="isExtracting" class="loading-overlay">
+    <mat-progress-spinner mode="indeterminate" diameter="50"></mat-progress-spinner>
+    <p>Processing...</p>
+  </div>
+
+  <mat-expansion-panel *ngIf="extractionError && !isExtracting" class="error-panel" [expanded]="true">
+      <mat-expansion-panel-header>
+          <mat-panel-title>
+              <mat-icon color="warn">error_outline</mat-icon> Extraction Error
+          </mat-panel-title>
+      </mat-expansion-panel-header>
+      <p>{{ extractionError }}</p>
+  </mat-expansion-panel>
+
+
+  <mat-card *ngIf="!isExtracting && !extractionError && extractionResult?.text" class="results-card">
+    <mat-card-header>
+      <mat-card-title>Extracted Text</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+       <div #highlightedTextContainer class="highlighted-text-container">
+         <ng-container *ngFor="let segment of highlightedSegments">
+            <mark *ngIf="segment.isEntityValue"
+                  [id]="segment.entityId"
+                  [title]="segment.entityType"
+                  [style.backgroundColor]="segment.backgroundColor"
+                  class="entity-value">
+                {{segment.text}}
+            </mark>
+            <span *ngIf="segment.isEntityContext"
+                  [style.border]="'1.5px dashed ' + segment.borderColor"
+                  [title]="segment.entityType + ' (Context)'"
+                  class="entity-context">
+                {{segment.text}}
+            </span>
+            <span *ngIf="!segment.isEntityValue && !segment.isEntityContext">
+                {{segment.text}}
+            </span>
+         </ng-container>
+       </div>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card *ngIf="!isExtracting && !extractionError && !extractionResult?.text" class="no-results-card">
+    <mat-card-content>
+        <p class="placeholder-text">No results to display. Upload a file and click Extract.</p>
+    </mat-card-content>
+  </mat-card>
+</div>
