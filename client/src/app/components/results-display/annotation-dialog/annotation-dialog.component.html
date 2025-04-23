@@ -1,0 +1,29 @@
+<p>annotation-dialog works!</p><h2 mat-dialog-title>Add Annotation</h2>
+
+<mat-dialog-content>
+  <p>Selected Text:</p>
+  <p class="selected-text-display">"{{ data.selectedText }}"</p>
+
+  <mat-divider></mat-divider>
+
+  <mat-form-field appearance="fill" class="entity-type-select">
+    <mat-label>Entity Type</mat-label>
+    <mat-select [(ngModel)]="selectedEntityType" required name="entityType">
+        <mat-option *ngIf="!data.entityTypes || data.entityTypes.length === 0" [value]="" disabled>
+            No entity types available
+        </mat-option>
+      <mat-option *ngFor="let type of data.entityTypes" [value]="type">
+        {{ type }}
+      </mat-option>
+    </mat-select>
+     <mat-error *ngIf="!selectedEntityType">Entity type is required</mat-error>
+  </mat-form-field>
+
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="onConfirm()" [disabled]="!selectedEntityType">
+      Add Annotation
+  </button>
+</mat-dialog-actions>

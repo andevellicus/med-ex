@@ -44,12 +44,11 @@
     [minSize]="20"
     class="main-content-area scrollable-content">
     <div class="scrollable-content" style="height: 100%; overflow: auto; padding: 16px;">
-        <app-results-display 
-            [extractionResult]="extractionResult$ | async"
+        <app-results-display
             [isExtracting]="(isExtracting$ | async) ?? false"
             [extractionError]="extractionError$ | async"
-            [scrollToTarget]="scrollToTarget">
-            </app-results-display>
+            [annotations]="currentAnnotations$ | async" [originalText]="(extractionResult$ | async)?.text ?? null" [entityTypes]="currentSchemaEntityTypes"  [scrollToTarget]="scrollToTarget">
+        </app-results-display>
     </div>
   </as-split-area>
 
@@ -61,9 +60,8 @@
     class="entities-area sidebar-area">
      <div class="scrollable-content" style="height: 100%; overflow: auto;">
         <app-entities-sidebar
-            [extractionResult]="extractionResult$ | async"
             [isExtracting]="(isExtracting$ | async) ?? false"
-            (entityClicked)="handleScrollToEntity($event)">
+            [annotations]="currentAnnotations$ | async" (entityClicked)="handleScrollToEntity($event)"> 
            </app-entities-sidebar>
      </div>
   </as-split-area>

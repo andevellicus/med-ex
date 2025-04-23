@@ -1,0 +1,19 @@
+/* client/src/app/components/results-display/annotation-dialog/annotation-dialog.component.scss */
+.selected-text-display {
+    background-color: #f0f0f0;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    font-style: italic;
+    max-height: 100px; // Limit height for long selections
+    overflow-y: auto; // Add scroll if needed
+}
+
+body.dark-theme .selected-text-display {
+    background-color: #424242;
+}
+
+.entity-type-select {
+    width: 100%;
+    margin-top: 16px;
+}

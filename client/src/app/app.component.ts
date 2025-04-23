@@ -14,9 +14,11 @@ import { ControlsSidebarComponent } from './components/controls-sidebar/controls
 import { ResultsDisplayComponent } from './components/results-display/results-display.component'; // Import new component
 import { EntitiesSidebarComponent } from './components/entities-sidebar/entities-sidebar.component'; // Import new component
 
-import { ExtractionService } from './core/services/extraction.service'; // Import the service for extraction
+import { ExtractionService } from './core/services/extraction.service';
+import { AnnotationService } from './core/services/annotation.service'; // Import AnnotationService
+import { SchemaService } from './core/services/schema.service'; // Import SchemaService
 
-import { ExtractionResult, ScrollTarget } from './core/models/types'; // Import the type for extraction results
+import { ExtractionResult, ScrollTarget, UserAnnotation, SchemaDefinition } from './core/models/types';
 
 @Component({
   selector: 'app-root',
@@ -52,6 +54,10 @@ export class AppComponent implements OnInit {
   extractionError$: Observable<string | null>;
   uploadProgress$: Observable<number | null>; // For potential progress bar
 
+  currentAnnotations$: Observable<UserAnnotation[]>;
+  currentSchemaDefinition: SchemaDefinition | null = null; // Store the fetched definition
+  currentSchemaEntityTypes: string[] = []; // Store the flat list of types
+
   scrollToTarget: ScrollTarget | null = null; // For scroll handling
 
   isDarkMode = false; // Keep theme logic if desired
@@ -59,13 +65,16 @@ export class AppComponent implements OnInit {
   // Inject services and ChangeDetectorRef
   constructor(
     private extractionService: ExtractionService,
-    private changeDetectorRef: ChangeDetectorRef // Needed for OnPush if async updates occur outside Angular zone (less likely here)
+    private annotationService: AnnotationService, // Inject AnnotationService
+    private schemaService: SchemaService,       // Inject SchemaService
+    private changeDetectorRef: ChangeDetectorRef
   ) {
     // Assign observables from the service
     this.extractionResult$ = this.extractionService.extractionResult$;
     this.isExtracting$ = this.extractionService.isExtracting$;
     this.extractionError$ = this.extractionService.extractionError$;
     this.uploadProgress$ = this.extractionService.uploadProgress$;
+    this.currentAnnotations$ = this.annotationService.annotations$; // Get annotations state
 
     // Theme detection (Existing)
     this.isDarkMode = window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
@@ -73,20 +82,35 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     document.body.classList.toggle('dark-theme', this.isDarkMode);
-    // Optional: Listen for OS theme changes (same as before)
+
+    // Subscribe to result changes to load initial annotations
     this.extractionResult$.subscribe(result => {
-      if (result && result.entities && Object.keys(result.entities).length > 0 && !this.isEntitiesSidebarOpen) {
-        this.isEntitiesSidebarOpen = true;
-        this.changeDetectorRef.markForCheck(); // Trigger change detection
+      this.annotationService.loadInitialAnnotations(result); // Load into AnnotationService
+      if (result && Object.keys(result.entities).length > 0 && !this.isEntitiesSidebarOpen) {
+         this.isEntitiesSidebarOpen = true;
+         this.changeDetectorRef.markForCheck();
       }
-      this.scrollToTarget = null; // Reset scroll target after processing
     });
   }
 
-  // --- Handler for Extraction Request ---
+  // Handler for Extraction Request
   handleExtractionRequest(event: { file: File, schema: string }): void {
     console.log('AppComponent received extraction request:', event);
     this.extractionService.extractEntities(event.file, event.schema);
+    this.scrollToTarget = null; // Reset scroll target
+
+    // Fetch schema definition and entity types
+    this.schemaService.getSchemaDefinition(event.schema).subscribe(definition => {
+        this.currentSchemaDefinition = definition;
+        this.currentSchemaEntityTypes = this.schemaService.getFlatEntityTypes(definition);
+        console.log("Loaded entity types for schema:", this.currentSchemaEntityTypes);
+        this.changeDetectorRef.markForCheck(); // Update view with new types
+    });
+
+
+    if (!this.isEntitiesSidebarOpen) {
+         this.isEntitiesSidebarOpen = true;
+    }
   }
 
   // Methods to toggle sidebars
@@ -98,15 +122,29 @@ export class AppComponent implements OnInit {
     this.isEntitiesSidebarOpen = !this.isEntitiesSidebarOpen;
   }
 
-  // --- TODO: Implement Scroll Handling ---
-  // This will require Output events from EntitiesSidebar and Input properties on ResultsDisplay
   handleScrollToEntity(entityId: string): void {
-    console.log("AppComponent: Scroll to entity requested:", entityId);
-    // Need to pass this down to ResultsDisplay, perhaps via a Subject/Observable or simple @Input
-    // For simplicity, we might add a property like:
-    // public scrollToTargetId: string | null = null;
-    this.scrollToTarget = { id: entityId, timestamp: Date.now() }; // Create a scroll target
-    // And pass `[scrollToTargetId]="scrollToTargetId"` to ResultsDisplay
-    // ResultsDisplay would need an @Input() scrollToTargetId and an ngOnChanges handler.
+      console.log("AppComponent: Scroll to entity requested:", entityId);
+      this.scrollToTarget = { id: entityId, timestamp: Date.now() };
+      this.changeDetectorRef.markForCheck();
   }
+
+  // --- NEW: Handle Export Request (placeholder) ---
+  handleExportRequest(): void {
+      // 1. Get current annotations (potentially subscribe to annotationService.annotations$ once)
+      // 2. Format them (e.g., JSONL)
+      // 3. Trigger download
+      alert("Export functionality not yet implemented.");
+      // Example:
+      // this.annotationService.annotations$.pipe(take(1)).subscribe(annotations => {
+      //     const formatted = JSON.stringify(annotations, null, 2); // Basic JSON example
+      //     const blob = new Blob([formatted], { type: 'application/json' });
+      //     const url = window.URL.createObjectURL(blob);
+      //     const a = document.createElement('a');
+      //     a.href = url;
+      //     a.download = 'annotations.json';
+      //     a.click();
+      //     window.URL.revokeObjectURL(url);
+      // });
+  }
+  
 }
