@@ -95,41 +95,57 @@ mark {
   min-height: 100px; // Ensure it has some height even when empty
   cursor: text; // Indicate text is selectable
 
-  // --- NEW ---
-  // Allow user text selection (browser default)
   user-select: text; /* Standard */
   -webkit-user-select: text; /* Safari */
   -moz-user-select: text; /* Firefox */
   -ms-user-select: text; /* IE/Edge */
 
-  span, mark {
+  mark {
     display: inline;
     padding: 0px 1px;
     margin: 0;
     border-radius: 3px;
   }
 
-  mark.entity-annotation {
-    padding: 0.15em 0.3em; // Slightly more padding for visual clarity
-    margin: 0 0.1em; // Small horizontal margin
-    border-radius: 4px;
-    cursor: pointer; // Indicate clickable
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1); // Subtle shadow
-    transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out; // Smooth transitions
-
-    &:hover {
-        box-shadow: 0 2px 4px rgba(0,0,0,0.15); // Slightly raise on hover
-        // Optional: slightly darken background on hover?
+  span { // Base style for segments
+      display: inline; // Allow context borders to wrap lines if needed
+      padding: 0; // Reset padding
+      margin: 0;  // Reset margin
+      line-height: inherit; // Inherit from container
     }
-  }
 
-  // Style for the temporary highlight on scroll/click
-  mark.entity-annotation.active-highlight {
-    outline: 2px solid #e91e63; // Use a distinct color (e.g., Material Pink)
-    outline-offset: 2px;
-    // box-shadow: 0 0 0 2px #e91e63, 0 2px 4px rgba(0,0,0,0.15); // Combine outline and shadow
-    transition: outline 0.1s linear; // Faster transition for active state
-  }
+  .context-span {
+        // Apply context styling
+        border: 1px dashed rgba(0, 0, 255, 0.5); // Example: semi-transparent blue dashed border
+        // padding: 0 1px; // Minimal padding inside border
+        margin: 0; // Minimal margin between bordered segments
+        border-radius: 3px;
+        background-color: rgba(230, 230, 255, 0.1); // Optional: slight background tint for context
+    }
+
+  mark.entity-annotation {
+        // Ensure annotation mark style overrides/complements context style if nested
+        padding: 0.15em 0.3em;
+        margin: 0 0.1em;
+        border-radius: 4px;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        border: none; // Remove context border from the mark itself if desired
+        position: relative; // Needed if you want tooltips/popups specific to the mark
+        z-index: 1; // Ensure mark is visually 'above' the context span background/border slightly
+
+        &:hover {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+    }
+
+    // Style for the temporary highlight on scroll/click (keep this)
+    mark.entity-annotation.active-highlight {
+        outline: 2px solid #e91e63;
+        outline-offset: 2px;
+        transition: outline 0.1s linear;
+        z-index: 2; // Ensure active highlight is above others
+    }
 }
 
 body.dark-theme .highlighted-text-container {

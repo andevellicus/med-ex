@@ -39,6 +39,9 @@ export interface UserAnnotation {
   text: string; // The actual text span
   // Optional: Add color, confidence, source (llm/user) if needed later
   color?: string; // For consistent coloring
+  contextText?: string; // The context text span (optional for now)
+  contextStart?: number; // RUNE index of context start
+  contextEnd?: number;   // RUNE index of context end
 }
 
 // Potentially define a Schema Definition type if needed client-side

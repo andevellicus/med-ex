@@ -1,291 +1,385 @@
-// client/src/app/components/results-display/results-display.component.ts
-// *** This requires significant refactoring ***
-
-import { Component, Input, ChangeDetectionStrategy, OnChanges, SimpleChanges, ViewChild, ElementRef, Renderer2, ChangeDetectorRef, OnDestroy } from '@angular/core';
+import {
+    Component, Input, ChangeDetectionStrategy, OnChanges, SimpleChanges,
+    ViewChild, ElementRef, Renderer2, ChangeDetectorRef, OnDestroy
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCardModule } from '@angular/material/card';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog'; // For Add/Delete confirmation
-import { MatButtonModule } from '@angular/material/button'; // For Dialog
-import { MatFormFieldModule } from '@angular/material/form-field'; // For Dialog Dropdown
-import { MatSelectModule } from '@angular/material/select'; // For Dialog Dropdown
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
 import { FormsModule } from '@angular/forms'; // For Dialog ngModel
-
 import { Subscription } from 'rxjs';
 
 // Import Annotation Service and Types
 import { AnnotationService } from '../../core/services/annotation.service';
 import { UserAnnotation, ScrollTarget, SchemaDefinition } from '../../core/models/types'; // Adjusted imports
 
-// Import the dialog component (create this next)
+// Import the dialog component
 import { AnnotationDialogComponent, AnnotationDialogData } from './annotation-dialog/annotation-dialog.component';
-
 
 // Define structure for processed segments to render
 interface HighlightedSegment {
-  text: string;
-  isAnnotation: boolean;
-  annotation?: UserAnnotation; // Include full annotation data
+    text: string;
+    isAnnotation: boolean;
+    isContext: boolean; // Added flag
+    annotation?: UserAnnotation;
+    contextForAnnotationId?: string; // Added optional ID link
 }
 
 @Component({
-  selector: 'app-results-display',
-  standalone: true,
-  imports: [
-    CommonModule,
-    MatProgressSpinnerModule,
-    MatCardModule,
-    MatExpansionModule,
-    MatIconModule,
-    MatDialogModule, // Add dialog module
-    MatButtonModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    FormsModule,
-    AnnotationDialogComponent // Import the standalone dialog component
-  ],
-  templateUrl: './results-display.component.html',
-  styleUrls: ['./results-display.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+    selector: 'app-results-display',
+    standalone: true,
+    imports: [
+        CommonModule,
+        MatProgressSpinnerModule,
+        MatCardModule,
+        MatExpansionModule,
+        MatIconModule,
+        MatDialogModule,
+        MatButtonModule,
+        MatFormFieldModule,
+        MatSelectModule,
+        FormsModule,
+    ],
+    templateUrl: './results-display.component.html',
+    styleUrls: ['./results-display.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ResultsDisplayComponent implements OnChanges, OnDestroy {
 
-  @Input() isExtracting: boolean = false;
-  @Input() extractionError: string | null = null;
-  @Input() annotations: UserAnnotation[] | null = null; // Use UserAnnotation array
-  @Input() originalText: string | null = null;       // Need the raw text
-  @Input() entityTypes: string[] = [];               // List of types for dropdown
-  @Input() scrollToTarget: ScrollTarget | null = null;
+    @Input() isExtracting: boolean = false;
+    @Input() extractionError: string | null = null;
+    @Input() annotations: UserAnnotation[] | null = null;
+    @Input() originalText: string | null = null;
+    @Input() entityTypes: string[] = [];
+    @Input() scrollToTarget: ScrollTarget | null = null;
 
-  @ViewChild('highlightedTextContainer') highlightedTextContainerRef!: ElementRef<HTMLDivElement>;
+    @ViewChild('highlightedTextContainer') highlightedTextContainerRef!: ElementRef<HTMLDivElement>;
 
-  highlightedSegments: HighlightedSegment[] = [];
+    highlightedSegments: HighlightedSegment[] = [];
 
-  private activeHighlightId: string | null = null;
-  private highlightTimeout: any = null;
-  private annotationSub: Subscription | null = null; // To trigger updates
+    private activeHighlightId: string | null = null;
+    private highlightTimeout: any = null;
+    // private annotationSub: Subscription | null = null; // Not strictly needed if relying on @Input changes
 
-  constructor(
-      private renderer: Renderer2,
-      private annotationService: AnnotationService, // Inject service
-      private dialog: MatDialog, // Inject MatDialog
-      private changeDetectorRef: ChangeDetectorRef // Inject CDR
-    ) {}
+    constructor(
+        private renderer: Renderer2,
+        private annotationService: AnnotationService,
+        private dialog: MatDialog,
+        private changeDetectorRef: ChangeDetectorRef
+    ) { }
 
-  ngOnChanges(changes: SimpleChanges): void {
-    // Re-process highlights whenever annotations or original text changes
-    if (changes['annotations'] || changes['originalText']) {
-       this.processHighlights();
-    }
-
-    // Handle Scrolling (keep existing logic, but ensure element IDs match UserAnnotation IDs)
-    if (changes['scrollToTarget'] && this.scrollToTarget && this.originalText) {
-      console.log("ResultsDisplay: scrollToTarget changed:", this.scrollToTarget);
-      // Use setTimeout to allow DOM update after ngOnChanges/highlight processing
-      setTimeout(() => {
-        if (this.highlightedTextContainerRef?.nativeElement) {
-          this.executeScroll(this.scrollToTarget!.id);
-        } else {
-          console.warn("Container ref not ready for scrolling yet.");
+    ngOnChanges(changes: SimpleChanges): void {
+        // Re-process highlights whenever annotations or original text changes
+        if (changes['annotations'] || changes['originalText']) {
+            this.processHighlights();
         }
-      }, 100); // Increased timeout slightly
-    } else if (changes['scrollToTarget'] && !this.scrollToTarget) {
-        // Clear highlight if scroll target is removed
-        this.clearTemporaryHighlight();
-    }
-  }
 
-  ngOnDestroy(): void {
-      // Clean up subscription if needed (might not be necessary if using async pipe)
-      // if (this.annotationSub) {
-      //    this.annotationSub.unsubscribe();
-      // }
-      clearTimeout(this.highlightTimeout); // Clear any pending highlight removal
-  }
-
-  private processHighlights(): void {
-    if (!this.originalText || !this.annotations) {
-      this.highlightedSegments = this.originalText ? [{ text: this.originalText, isAnnotation: false }] : [];
-      this.changeDetectorRef.markForCheck(); // Trigger update if text/annotations cleared
-      return;
+        // Handle Scrolling
+        if (changes['scrollToTarget'] && this.scrollToTarget && this.originalText) {
+            console.log("ResultsDisplay: scrollToTarget changed:", this.scrollToTarget);
+            setTimeout(() => {
+                if (this.highlightedTextContainerRef?.nativeElement) {
+                    this.executeScroll(this.scrollToTarget!.id);
+                } else {
+                    console.warn("Container ref not ready for scrolling yet.");
+                }
+            }, 150); // Adjusted timeout slightly
+        } else if (changes['scrollToTarget'] && !this.scrollToTarget) {
+            this.clearTemporaryHighlight();
+        }
     }
 
-    const text = this.originalText;
-    // Ensure annotations are sorted by start position (AnnotationService should handle this)
-    const sortedAnnotations = this.annotations; //.sort((a, b) => a.start - b.start);
+    ngOnDestroy(): void {
+        clearTimeout(this.highlightTimeout);
+    }
 
-    const segments: HighlightedSegment[] = [];
-    let lastIndex = 0;
+    handleTextSelection(event: MouseEvent): void {
+        if (this.isExtracting || !this.originalText) return;
 
-    sortedAnnotations.forEach(annotation => {
-      // Add text segment before the current annotation (if any)
-      if (annotation.start > lastIndex) {
-        segments.push({
-          text: text.substring(lastIndex, annotation.start),
-          isAnnotation: false,
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+            return;
+        }
+
+        const range = selection.getRangeAt(0);
+        const containerElement = this.highlightedTextContainerRef.nativeElement;
+
+        // Basic check if selection happened within the container
+        // Note: Even if outside, range.toString() might capture intended text,
+        // so we proceed but the indexOf result might be less certain to be the "intended" one.
+        if (!containerElement.contains(range.commonAncestorContainer)) {
+            console.warn("Selection occurred potentially outside the target container.");
+        }
+
+        const valueText = range.toString();
+        if (!valueText) { // Ignore empty selections
+            window.getSelection()?.removeAllRanges();
+            return;
+        }
+
+        let startOffset = -1;
+        let endOffset = -1;
+
+        try {
+            // --- Step 1: Search for the selected text in originalText ---
+            // This finds the FIRST occurrence of the selected text string.
+            startOffset = this.originalText.indexOf(valueText);
+
+            // --- Step 2: Validate Search Result ---
+            if (startOffset === -1) {
+                console.error("Selected text could not be found within the original text. Check for subtle differences like whitespace or ensure the text exists.", { valueText });
+                // Provide more specific feedback to the user
+                alert(`Error: Could not locate the exact text "${valueText}" in the document. Please ensure you selected the complete text accurately.`);
+                window.getSelection()?.removeAllRanges();
+                return; // Stop if not found
+            }
+
+            // Calculate end offset based on the found start and the length of the selected text
+            endOffset = startOffset + valueText.length;
+
+            // --- Step 3: VERIFY Match ---
+            // This check ensures the calculated offsets correctly extract the selected text string
+            // from the originalText. It should always pass if indexOf found the exact string.
+            const extractedSlice = this.originalText.substring(startOffset, endOffset);
+            console.log(`%cVERIFICATION (indexOf Method):`, 'color: green; font-weight: bold;', `
+                Selected Text (range.toString): ${JSON.stringify(valueText)}
+                Calculated Offsets: [${startOffset}-${endOffset}]
+                Slice from originalText @ Offsets: ${JSON.stringify(extractedSlice)}
+                Match: ${valueText === extractedSlice}`);
+
+            if (valueText !== extractedSlice) {
+                // If this fails, it indicates a very unusual issue, potentially with
+                // non-standard characters or a bug in how selection/substring works.
+                console.error("OFFSET MISMATCH (indexOf Method): Substring result doesn't match selection. This is unexpected.");
+                alert("Internal Error: Offset mismatch after finding text (Code: IDX). Annotation not added.");
+                window.getSelection()?.removeAllRanges();
+                return;
+            }
+
+            // --- Step 4: Overlap Check ---
+            // Checks if the calculated span overlaps with any existing annotations
+            const overlaps = this.annotations?.some(ann =>
+                (startOffset < ann.end && endOffset > ann.start)
+            );
+            if (overlaps) {
+                console.log("Selection overlaps existing annotation (based on found offsets). Ignoring.", { startOffset, endOffset, valueText });
+                alert("Selection overlaps with an existing annotation.");
+                window.getSelection()?.removeAllRanges();
+                return;
+            }
+
+            // --- Step 5: Context Generation (Simplified for this approach) ---
+            // Generate context based on the found offsets. Remember this context
+            // will correspond to the FIRST occurrence found by indexOf.
+            let contextStart = Math.max(0, startOffset - 30); // Approx 30 chars before
+            let contextEnd = Math.min(this.originalText.length, endOffset + 30); // Approx 30 chars after
+            let contextText = this.originalText.substring(contextStart, contextEnd);
+
+            console.log(`Found Match: Value [${startOffset}-${endOffset}], Approx Context [${contextStart}-${contextEnd}]`);
+
+            // --- Step 6: Open Dialog ---
+            // Pass the calculated (and verified) offsets and the simplified context
+            this.openAnnotationDialog(
+                startOffset,
+                endOffset,
+                valueText,
+                contextText,
+                contextStart,
+                contextEnd
+            );
+
+        } catch (e) {
+            console.error("Error processing text selection:", e);
+            // Optional: Provide user feedback about the error
+            alert("An unexpected error occurred while processing the text selection.");
+        } finally {
+            // Ensure browser selection is cleared regardless of success or failure
+            window.getSelection()?.removeAllRanges();
+        }
+    }
+
+    // --- Annotation Click Handler ---
+    handleAnnotationClick(annotation: UserAnnotation, event: MouseEvent): void {
+        event.stopPropagation(); // Prevent triggering text selection handler
+        console.log('Clicked annotation:', annotation);
+
+        // Simple confirm dialog for deletion
+        // Consider using MatDialog for a more consistent UI
+        if (confirm(`Delete annotation "${annotation.text}" (${annotation.type})?`)) {
+            this.annotationService.deleteAnnotation(annotation.id);
+        }
+    }
+
+
+    // --- Dialog Opener ---
+    openAnnotationDialog(
+        valueStart: number,
+        valueEnd: number,
+        valueText: string,
+        // Context details needed after dialog closes
+        contextText: string,
+        contextStart: number,
+        contextEnd: number
+     ): void {
+        const dialogRef = this.dialog.open<AnnotationDialogComponent, AnnotationDialogData, string | undefined>(AnnotationDialogComponent, {
+            width: '350px',
+            disableClose: true, // Prevent closing by clicking outside or pressing Esc
+            data: {
+                selectedText: valueText, // Dialog only needs value text to display
+                entityTypes: this.entityTypes
+            }
         });
-      }
-      // Add the annotation segment itself
-      segments.push({
-        text: annotation.text, // Use text stored in annotation
-        isAnnotation: true,
-        annotation: annotation, // Pass the whole annotation object
-      });
-      lastIndex = annotation.end;
-    });
 
-    // Add any remaining text after the last annotation
-    if (lastIndex < text.length) {
-      segments.push({
-        text: text.substring(lastIndex),
-        isAnnotation: false,
-      });
+        dialogRef.afterClosed().subscribe(selectedType => {
+            if (selectedType) { // Check if a type was actually selected (user didn't cancel)
+                console.log('Dialog closed, selected type:', selectedType);
+                // Call addAnnotation with ALL details (value + context)
+                this.annotationService.addAnnotation(
+                    selectedType,
+                    valueStart,
+                    valueEnd,
+                    valueText,
+                    contextText,  // Pass generated context
+                    contextStart, // Pass generated context start
+                    contextEnd    // Pass generated context end
+                 );
+            } else {
+                console.log('Annotation dialog cancelled.');
+            }
+        });
     }
 
-    this.highlightedSegments = segments;
-     this.changeDetectorRef.markForCheck(); // Manually trigger change detection
-     // console.log("Processed segments:", this.highlightedSegments);
-  }
+    // --- Highlight Processing ---
+private processHighlights(): void {
+    console.log('--- Running processHighlights ---'); // Log start
 
-  // --- Text Selection Handling ---
-  handleTextSelection(event: MouseEvent): void {
-      if (this.isExtracting || !this.originalText) return; // Don't allow selection during extraction or without text
-
-      const selection = window.getSelection();
-      if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
-          // console.log('No selection or collapsed selection');
+    if (!this.originalText) {
+        this.highlightedSegments = [];
+        this.changeDetectorRef.markForCheck();
+        console.log('processHighlights: No original text.');
+        return;
+    }
+     if (!this.annotations) {
+          this.highlightedSegments = [{ text: this.originalText, isAnnotation: false, isContext: false }];
+          this.changeDetectorRef.markForCheck();
+          console.log('processHighlights: No annotations.');
           return;
       }
 
-      const range = selection.getRangeAt(0);
-      const containerElement = this.highlightedTextContainerRef.nativeElement;
+    // Log the inputs it's working with *at this moment*
+    console.log('processHighlights: Annotations count:', this.annotations.length);
+    // console.log('processHighlights: Annotations data:', JSON.stringify(this.annotations)); // Careful, can be large
 
-      // --- Accurate Offset Calculation (CRITICAL & COMPLEX) ---
-      // This is a simplified example. Robust calculation needs to handle
-      // selections spanning multiple existing highlight nodes.
-      // A common strategy is to iterate through text nodes within the container.
-      let startOffset = -1;
-      let endOffset = -1;
+    const text = this.originalText;
+    const segments: HighlightedSegment[] = [];
 
-      try {
-          // Check if selection is fully within our container
-          if (!containerElement.contains(range.commonAncestorContainer)) {
-              console.warn("Selection is outside the target container.");
-              return;
-          }
+    // 1. Log the points being considered
+    const points = new Set<number>([0, text.length]);
+    this.annotations.forEach(a => {
+        points.add(a.start);
+        points.add(a.end);
+        if (typeof a.contextStart === 'number') points.add(a.contextStart);
+        if (typeof a.contextEnd === 'number') points.add(a.contextEnd);
+    });
+    const sortedPoints = Array.from(points).sort((a, b) => a - b);
+    console.log('processHighlights: Sorted Points:', sortedPoints);
 
-         // Create a temporary range covering the whole container content
-          const containerRange = document.createRange();
-          containerRange.selectNodeContents(containerElement);
+    // 3. Log inside the loop
+    for (let i = 0; i < sortedPoints.length; i++) {
+        const p1 = sortedPoints[i];
+        const p2 = (i + 1 < sortedPoints.length) ? sortedPoints[i + 1] : text.length;
 
-          // Calculate start offset relative to container start
-          const startRange = document.createRange();
-          startRange.setStart(containerRange.startContainer, containerRange.startOffset);
-          startRange.setEnd(range.startContainer, range.startOffset);
-          // Use length of the text content of the range - handles nodes correctly
-          startOffset = startRange.toString().length;
+        if (p1 >= p2 || p1 < 0 || p2 > text.length) continue;
 
+        const segmentText = text.substring(p1, p2);
+        const checkPoint = p1; // Check containment based on start point
 
-          // Calculate end offset relative to container start
-          const endRange = document.createRange();
-          endRange.setStart(containerRange.startContainer, containerRange.startOffset);
-          endRange.setEnd(range.endContainer, range.endOffset);
-          endOffset = endRange.toString().length;
+        console.log(`--- Iteration ${i}: p1=${p1}, p2=${p2}, checkPoint=${checkPoint}, segmentText="${segmentText}"`);
 
+        let isAnnotationSegment = false;
+        let isContextSegment = false;
+        let segmentAnnotation: UserAnnotation | undefined = undefined;
+        let contextForId: string | undefined = undefined;
 
-          const selectedText = range.toString();
+        // Log annotation checks
+        for (const annotation of this.annotations) {
+            const isAnno = checkPoint >= annotation.start && checkPoint < annotation.end;
+            // Log check for the specific annotation if needed
+            // if (annotation.id === 'YOUR_PROBLEM_ANNOTATION_ID') {
+            //    console.log(`Checking PROBLEM annotation (${annotation.id}): checkPoint=${checkPoint}, start=${annotation.start}, end=${annotation.end} -> isAnno=${isAnno}`);
+            // }
+            if (isAnno) {
+                console.log(`   Segment [${p1}-${p2}] IS Annotation: ${annotation.id} ("${annotation.text}")`);
+                isAnnotationSegment = true;
+                segmentAnnotation = annotation;
+                // Check context containment as well
+                const isCtx = typeof annotation.contextStart === 'number' && typeof annotation.contextEnd === 'number' &&
+                              checkPoint >= annotation.contextStart && checkPoint < annotation.contextEnd;
+                 if (isCtx) {
+                      console.log(`   Segment [${p1}-${p2}] IS ALSO Context for: ${annotation.id}`);
+                      isContextSegment = true;
+                      contextForId = annotation.id;
+                 }
+                break;
+            }
+        }
 
-          if (startOffset < 0 || endOffset < 0 || startOffset >= endOffset) {
-              console.error("Failed to calculate valid offsets.");
-               window.getSelection()?.removeAllRanges(); // Clear selection
-              return;
-          }
+        // Log context-only checks
+        if (!isAnnotationSegment) {
+            for (const annotation of this.annotations) {
+                 const isCtx = typeof annotation.contextStart === 'number' && typeof annotation.contextEnd === 'number' &&
+                               checkPoint >= annotation.contextStart && checkPoint < annotation.contextEnd;
+                 if (isCtx) {
+                      console.log(`   Segment [${p1}-${p2}] IS Context ONLY for: ${annotation.id}`);
+                      isContextSegment = true;
+                      contextForId = annotation.id;
+                      break;
+                 }
+            }
+        }
 
-           // --- Basic Overlap Check (can be improved) ---
-          const overlaps = this.annotations?.some(ann =>
-               (startOffset < ann.end && endOffset > ann.start) // Check for overlap
-           );
+        if (!isAnnotationSegment && !isContextSegment) {
+             console.log(`   Segment [${p1}-${p2}] is PLAIN text.`);
+        }
 
-          if (overlaps) {
-               console.log("Selection overlaps existing annotation. Ignoring.");
-               // Optional: Provide feedback to the user
-               window.getSelection()?.removeAllRanges(); // Clear selection
-               return; // Don't allow adding overlapping annotations easily
-           }
+            segments.push({
+                text: segmentText,
+                isAnnotation: isAnnotationSegment,
+                isContext: isContextSegment,
+                annotation: segmentAnnotation,
+                contextForAnnotationId: contextForId,
+            });
+        }
 
+        this.highlightedSegments = segments.filter(s => s.text.length > 0);
+        // Log the final result before render
+        // console.log('processHighlights: Final Segments:', JSON.stringify(this.highlightedSegments)); // Careful, can be large
+        console.log('--- Finished processHighlights ---');
+        this.changeDetectorRef.markForCheck();
+    } // End processHighlights
 
-          console.log(`Selection: "${selectedText}" | Start: ${startOffset} | End: ${endOffset}`);
-
-          // Open Dialog to get entity type
-          this.openAnnotationDialog(startOffset, endOffset, selectedText);
-
-
-      } catch (e) {
-            console.error("Error processing selection:", e);
-      } finally {
-           window.getSelection()?.removeAllRanges(); // Clear selection after processing
-      }
-  }
-
-  // --- Annotation Click Handling ---
-  handleAnnotationClick(annotation: UserAnnotation, event: MouseEvent): void {
-    event.stopPropagation(); // Prevent triggering text selection handler
-    console.log('Clicked annotation:', annotation);
-
-    // Simple confirm dialog for deletion
-    if (confirm(`Delete annotation "${annotation.text}" (${annotation.type})?`)) {
-      this.annotationService.deleteAnnotation(annotation.id);
-    }
-  }
-
-  // --- Dialog Opener ---
-  openAnnotationDialog(start: number, end: number, text: string): void {
-      const dialogRef = this.dialog.open<AnnotationDialogComponent, AnnotationDialogData, string | undefined>(AnnotationDialogComponent, { // Expect string | undefined result
-          width: '350px',
-          data: {
-              selectedText: text,
-              entityTypes: this.entityTypes // Pass available types
-          }
-      });
-
-      dialogRef.afterClosed().subscribe(selectedType => {
-          if (selectedType) { // Check if a type was actually selected
-              console.log('Dialog closed, selected type:', selectedType);
-              this.annotationService.addAnnotation(selectedType, start, end, text);
-          } else {
-              console.log('Annotation dialog cancelled.');
-          }
-      });
-  }
-
-
-  // --- Scrolling Logic (adapted for UserAnnotation IDs) ---
-  private executeScroll(targetId: string): void {
-    const element = document.getElementById(targetId); // Find the <mark> element by UserAnnotation ID
-    if (element) {
-        console.log(`Scrolling to element ID: ${targetId}`);
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' }); // Removed 'inline' as it can conflict with block:center
-
-        // Clear previous highlight immediately
-        this.clearTemporaryHighlight();
-
-        // Apply new active class and set timeout to remove it
-        this.activeHighlightId = targetId;
-        this.renderer.addClass(element, 'active-highlight');
-
-        this.highlightTimeout = setTimeout(() => {
+    // --- Scrolling Logic ---
+    private executeScroll(targetId: string): void {
+        const element = document.getElementById(targetId);
+        if (element) {
+            console.log(`Scrolling to element ID: ${targetId}`);
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            this.clearTemporaryHighlight(); // Clear previous immediately
+            this.activeHighlightId = targetId;
+            this.renderer.addClass(element, 'active-highlight');
+            this.highlightTimeout = setTimeout(() => {
+                this.clearTemporaryHighlight();
+            }, 1500);
+        } else {
+            console.warn(`Element with ID "${targetId}" not found for scrolling.`);
             this.clearTemporaryHighlight();
-            // Optional: Emit scrollComplete event here if needed
-        }, 1500); // Highlight duration
-
-    } else {
-        console.warn(`Element with ID "${targetId}" not found for scrolling.`);
-        this.clearTemporaryHighlight(); // Ensure no stale highlight if element not found
-        // Optional: Emit scrollComplete event here even if not found
+        }
     }
-  }
 
     private clearTemporaryHighlight(): void {
         if (this.highlightTimeout) {
@@ -301,8 +395,9 @@ export class ResultsDisplayComponent implements OnChanges, OnDestroy {
         }
     }
 
-  // Helper to prevent default context menu on highlighted text
-  preventContextMenu(event: MouseEvent): void {
-      event.preventDefault();
-  }
-}
+    // Helper to prevent default context menu on highlighted text
+    preventContextMenu(event: MouseEvent): void {
+        event.preventDefault();
+    }
+
+} // --- End of ResultsDisplayComponent Class ---

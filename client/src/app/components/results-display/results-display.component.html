@@ -20,22 +20,27 @@
       <mat-card-subtitle>Select text to add annotations, click existing annotations to delete.</mat-card-subtitle>
     </mat-card-header>
     <mat-card-content>
-        <div #highlightedTextContainer
-            class="highlighted-text-container"
-            (mouseup)="handleTextSelection($event)">
-         <ng-container *ngFor="let segment of highlightedSegments">
-            <mark *ngIf="segment.isAnnotation && segment.annotation"
-                 [id]="segment.annotation.id"
-                 [title]="segment.annotation.type"
-                 [style.backgroundColor]="segment.annotation.color || '#ffecb3'" class="entity-annotation"
-                 (click)="handleAnnotationClick(segment.annotation, $event)"
-                 (contextmenu)="preventContextMenu($event)"> {{ segment.text }}
-           </mark>
-           <span *ngIf="!segment.isAnnotation">
-             {{ segment.text }}
-           </span>
-         </ng-container>
-       </div>
+      <div #highlightedTextContainer
+          class="highlighted-text-container"
+          (mouseup)="handleTextSelection($event)">
+          <ng-container *ngFor="let segment of highlightedSegments">
+              <span *ngIf="!segment.isAnnotation && !segment.isContext">
+                  {{ segment.text }}
+              </span>
+              <span *ngIf="!segment.isAnnotation && segment.isContext"
+                    class="context-span" [attr.data-context-for]="segment.contextForAnnotationId">
+                  {{ segment.text }}
+              </span>
+              <span *ngIf="segment.isAnnotation && segment.annotation"
+                    class="context-span" [attr.data-context-for]="segment.contextForAnnotationId">  <mark [id]="segment.annotation.id"
+                        [title]="segment.annotation.type"
+                        [style.backgroundColor]="segment.annotation.color || '#ffecb3'"
+                        class="entity-annotation"
+                        (click)="handleAnnotationClick(segment.annotation, $event)"
+                        (contextmenu)="preventContextMenu($event)">{{ segment.text }}</mark>
+              </span>
+          </ng-container>
+      </div>
     </mat-card-content>
   </mat-card>
 
