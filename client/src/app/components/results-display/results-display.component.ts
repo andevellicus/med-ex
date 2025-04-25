@@ -146,11 +146,6 @@ export class ResultsDisplayComponent implements OnChanges, OnDestroy {
             // This check ensures the calculated offsets correctly extract the selected text string
             // from the originalText. It should always pass if indexOf found the exact string.
             const extractedSlice = this.originalText.substring(startOffset, endOffset);
-            console.log(`%cVERIFICATION (indexOf Method):`, 'color: green; font-weight: bold;', `
-                Selected Text (range.toString): ${JSON.stringify(valueText)}
-                Calculated Offsets: [${startOffset}-${endOffset}]
-                Slice from originalText @ Offsets: ${JSON.stringify(extractedSlice)}
-                Match: ${valueText === extractedSlice}`);
 
             if (valueText !== extractedSlice) {
                 // If this fails, it indicates a very unusual issue, potentially with
@@ -167,7 +162,6 @@ export class ResultsDisplayComponent implements OnChanges, OnDestroy {
                 (startOffset < ann.end && endOffset > ann.start)
             );
             if (overlaps) {
-                console.log("Selection overlaps existing annotation (based on found offsets). Ignoring.", { startOffset, endOffset, valueText });
                 alert("Selection overlaps with an existing annotation.");
                 window.getSelection()?.removeAllRanges();
                 return;
