@@ -1,0 +1,95 @@
+/* src/index.css */
+
+.Resizer {
+  background: #000;
+  opacity: 0.2;
+  z-index: 1;
+  box-sizing: border-box;
+  background-clip: padding-box;
+  /* Make the resizer slightly thicker and easier to grab */
+  transition: all 0.1s ease-in; /* Faster transition */
+}
+
+.Resizer:hover {
+  transition: all 0.1s ease-in; /* Faster transition */
+}
+
+.Resizer.horizontal {
+  height: 11px;
+  margin: -5px 0;
+  border-top: 5px solid rgba(255, 255, 255, 0);
+  border-bottom: 5px solid rgba(255, 255, 255, 0);
+  cursor: row-resize;
+  width: 100%;
+}
+
+.Resizer.horizontal:hover {
+  border-top: 5px solid rgba(0, 0, 0, 0.5);
+  border-bottom: 5px solid rgba(0, 0, 0, 0.5);
+  opacity: 0.5; /* Make hover state more obvious */
+}
+
+.Resizer.vertical {
+  width: 11px;
+  margin: 0 -5px;
+  border-left: 5px solid rgba(255, 255, 255, 0);
+  border-right: 5px solid rgba(255, 255, 255, 0);
+  cursor: col-resize;
+}
+
+.Resizer.vertical:hover {
+  border-left: 5px solid rgba(0, 0, 0, 0.5);
+  border-right: 5px solid rgba(0, 0, 0, 0.5);
+   opacity: 0.5; /* Make hover state more obvious */
+}
+
+.Resizer.disabled {
+  cursor: not-allowed;
+}
+.Resizer.disabled:hover {
+  border-color: transparent;
+}
+
+/* Style the panes to allow scrolling and prevent flex issues */
+.SplitPane {
+    position: relative !important; /* Needed for proper pane sizing */
+    height: 100vh; /* Ensure SplitPane fills the viewport height */
+    overflow: hidden; /* Prevent scrollbars on the SplitPane itself */
+}
+
+.SplitPane > .Pane1,
+.SplitPane > .Pane2 {
+    /* height: 100%; Let SplitPane manage height */
+    overflow-y: auto; /* Allow independent scrolling */
+    overflow-x: hidden;
+    /* Important: prevent flex basis issues with SplitPane */
+    flex-basis: auto !important;
+    /* Need position relative for potential absolute children within panes */
+    position: relative;
+}
+
+/* Style the content wrapper INSIDE the panes */
+/* Apply padding here instead of directly on Pane1/Pane2 children */
+.pane-content-wrapper {
+    padding: 16px; /* Add padding around the content within each pane */
+    height: 100%; /* Ensure content wrapper takes full height */
+    box-sizing: border-box; /* Include padding in height */
+    display: flex; /* Use flexbox for internal layout if needed */
+    flex-direction: column;
+}
+
+
+/* Ensure Paper inside panes takes full height */
+.pane-content-wrapper > .MuiPaper-root {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Specific adjustments if needed */
+.ResultsDisplayWrapper .MuiPaper-root {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+    padding: 0; /* Remove default Paper padding if HighlightedText adds its own */
+}

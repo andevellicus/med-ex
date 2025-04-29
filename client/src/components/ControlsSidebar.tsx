@@ -1,23 +1,16 @@
 // src/components/ControlsSidebar.tsx
-import { useState, useCallback } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { useState } from 'react';
 import {
     Box,
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
     SelectChangeEvent,
     Typography,
-    Alert,
     Divider,
     Button,
-    Paper,
     CircularProgress
 } from '@mui/material';
-import UploadFileIcon from '@mui/icons-material/UploadFile';
-import ClearIcon from '@mui/icons-material/Clear';
 import { ExtractionResult } from '../types';
+import SchemaSelector from './SchemaSelector'; // Import new component
+import FileUploadZone from './FileUploadZone'; // Import new component
 
 // Define props for ControlsSidebar
 interface ControlsSidebarProps {
@@ -30,7 +23,6 @@ interface ControlsSidebarProps {
     onExtractStart: () => void;
     onExtractComplete: (result: ExtractionResult) => void;
     onExtractError: (error: string) => void;
-    // No need for isControlsOpen prop if button is managed in App.tsx
 }
 
 function ControlsSidebar({
@@ -45,30 +37,11 @@ function ControlsSidebar({
     onExtractError
 }: ControlsSidebarProps) {
     const [file, setFile] = useState<File | null>(null);
-    const [fileError, setFileError] = useState<string | null>(null);
 
-    // Handle when files are dropped or selected
-    const onDrop = useCallback((acceptedFiles: File[]) => {
-        setFileError(null);
-        if (acceptedFiles.length === 0) { return; }
-        const selectedFile = acceptedFiles[0];
+    // Handle file selection from FileUploadZone
+    const handleFileSelect = (selectedFile: File | null) => {
         setFile(selectedFile);
-    }, []);
-
-    // Clear the current file
-    const handleClearFile = (e?: React.MouseEvent) => {
-        if (e) e.stopPropagation();
-        setFile(null);
-        setFileError(null);
     };
-
-    // Configure dropzone
-    const { getRootProps, getInputProps, isDragActive, isDragAccept, isDragReject } = useDropzone({
-        onDrop,
-        accept: { 'text/plain': ['.txt'] },
-        maxFiles: 1,
-        multiple: false
-    });
 
     // Handle form submission
     const handleSubmit = async () => {
@@ -79,6 +52,7 @@ function ControlsSidebar({
             formData.append('file', file);
             formData.append('schema', selectedSchema);
             const response = await fetch('/api/extract', { method: 'POST', body: formData });
+
             if (!response.ok) {
                 let errorMsg = `Server error: ${response.status} ${response.statusText}`;
                 try {
@@ -95,75 +69,33 @@ function ControlsSidebar({
         }
     };
 
-    // Dynamic style based on drag state
-     const getDropzoneStyle = () => ({ // Simplified slightly
-        borderColor: isDragAccept ? 'success.main' : isDragReject ? 'error.main' : isDragActive ? 'primary.main' : file ? 'primary.light' : 'divider',
-        bgcolor: isDragAccept ? 'success.light' : isDragReject ? 'error.light' : isDragActive ? 'action.hover' : file ? 'action.selected' : 'background.default',
-        transition: 'border-color 0.2s ease-in-out, background-color 0.2s ease-in-out' // Added transition
-    });
-
     return (
-        // Use Box with explicit height and allow content scrolling
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', pt: 6 /* Add padding top for toggle button */ }}>
-            <Typography variant="h6" gutterBottom component="div" sx={{ px: 2, pb: 0 }}>
+        // This Box is now the direct child of a Pane, let SplitPane handle height/scroll
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%'}}>
+            <Typography variant="h6" gutterBottom component="div" sx={{ px: 0, pb: 0, flexShrink: 0 }}> {/* Adjust padding if needed */}
                 Controls
             </Typography>
-            <Divider sx={{ mb: 1 }}/>
-            {/* Scrollable content area */}
-            <Box sx={{ px: 2, flexGrow: 1, overflowY: 'auto' }}>
-                <FormControl fullWidth margin="normal" size="small">
-                    <InputLabel id="schema-select-label">Schema</InputLabel>
-                    <Select
-                        labelId="schema-select-label"
-                        id="schema-select"
-                        value={selectedSchema}
-                        label="Schema"
-                        onChange={onSchemaChange}
-                        disabled={isLoadingSchemas || schemas.length === 0}
-                    >
-                        {isLoadingSchemas && <MenuItem disabled><em>Loading...</em></MenuItem>}
-                        {!isLoadingSchemas && schemas.length === 0 && <MenuItem disabled><em>No schemas found</em></MenuItem>}
-                        {schemas.map((schemaName) => (
-                            <MenuItem key={schemaName} value={schemaName}>{schemaName}</MenuItem>
-                        ))}
-                    </Select>
-                    {schemaError && <Alert severity="error" sx={{ mt: 1, fontSize: '0.8rem' }}>{schemaError}</Alert>}
-                </FormControl>
+            <Divider sx={{ mb: 1, flexShrink: 0 }} />
+            {/* Scrollable content area within the sidebar */}
+            <Box sx={{ flexGrow: 1, overflowY: 'auto', pr: 1 /* Add padding right for scrollbar */ }}>
 
-                {/* File Upload Section */}
-                <Box sx={{ mt: 3 }}>
-                    <Typography variant="subtitle2" gutterBottom>Upload Text File</Typography>
-                    <Paper
-                        variant="outlined"
-                        sx={{
-                            p: 2, mt: 1, border: '2px dashed', minHeight: '100px',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center',
-                            justifyContent: 'center', cursor: 'pointer', textAlign: 'center',
-                            ...getDropzoneStyle()
-                        }}
-                        {...getRootProps()}
-                    >
-                        <input {...getInputProps()} />
-                        {file ? (
-                            <Box sx={{ width: '100%', position: 'relative' }}>
-                                <Typography variant="body1" fontWeight="medium" sx={{ wordBreak: 'break-all' }}>{file.name}</Typography>
-                                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{(file.size / 1024).toFixed(1)} KB</Typography>
-                                <Button size="small" startIcon={<ClearIcon />} onClick={handleClearFile} sx={{ mt: 1 }}>Clear</Button>
-                            </Box>
-                        ) : (
-                            <>
-                                <UploadFileIcon color={isDragReject ? "error" : "primary"} sx={{ fontSize: 40, mb: 1 }} />
-                                <Typography variant="body2" color="text.secondary">
-                                    {isDragReject ? "Only .txt files accepted" : isDragActive ? "Drop the file here..." : "Drag and drop or click"}
-                                </Typography>
-                            </>
-                        )}
-                    </Paper>
-                    {fileError && <Alert severity="error" sx={{ mt: 1, fontSize: '0.8rem' }}>{fileError}</Alert>}
-                </Box>
+                {/* Use SchemaSelector Component */}
+                <SchemaSelector
+                    schemas={schemas}
+                    selectedSchema={selectedSchema}
+                    isLoadingSchemas={isLoadingSchemas}
+                    schemaError={schemaError}
+                    onSchemaChange={onSchemaChange}
+                />
+
+                {/* Use FileUploadZone Component */}
+                <FileUploadZone
+                    onFileSelect={handleFileSelect}
+                    currentFile={file}
+                />
 
                 {/* Submit Button */}
-                <Box sx={{ mt: 2, mb: 1 }}> {/* Adjusted margin */}
+                <Box sx={{ mt: 'auto', pt: 2, pb: 1, flexShrink: 0 }}> {/* Push button towards bottom */}
                     <Button
                         variant="contained"
                         fullWidth
