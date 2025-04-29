@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/andevellicus/webapp/internal/config"
-	"github.com/andevellicus/webapp/internal/extractor"
-	"github.com/andevellicus/webapp/internal/handlers"
-	"github.com/andevellicus/webapp/internal/logger"
+	"github.com/andevellicus/med-ex/internal/config"
+	"github.com/andevellicus/med-ex/internal/extractor"
+	"github.com/andevellicus/med-ex/internal/handlers"
+	"github.com/andevellicus/med-ex/internal/logger"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )

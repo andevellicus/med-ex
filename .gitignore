@@ -3,6 +3,7 @@ client/node_modules/
 
 # Build files
 client/dist/
+.angular/
 
 # Misc TSX:
 client/package-lock.json

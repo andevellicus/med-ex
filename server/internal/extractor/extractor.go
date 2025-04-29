@@ -10,7 +10,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/andevellicus/webapp/internal/config"
+	"github.com/andevellicus/med-ex/internal/config"
 	"go.uber.org/zap"
 )
 

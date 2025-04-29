@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/andevellicus/webapp/internal/extractor" // Adjust import path
+	"github.com/andevellicus/med-ex/internal/extractor" // Adjust import path
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )

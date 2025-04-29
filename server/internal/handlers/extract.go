@@ -8,7 +8,7 @@ import (
 
 	"slices"
 
-	"github.com/andevellicus/webapp/internal/extractor"
+	"github.com/andevellicus/med-ex/internal/extractor"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
