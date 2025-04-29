@@ -1,5 +1,17 @@
 /* src/index.css */
 
+/* Class to hide scrollbar but keep functionality */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* For Chrome, Safari, and Opera */
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* For Internet Explorer and Edge */
+  scrollbar-width: none;  /* For Firefox */
+  /* Ensure overflow is still enabled to allow scrolling */
+  /* The actual overflow value (auto/scroll) should be set on the element itself */
+}
+
 .Resizer {
   background: #000;
   opacity: 0.2;

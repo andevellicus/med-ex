@@ -185,7 +185,7 @@ function EntitiesSidebar({ extractionResult, isExtracting, onEntityClick }: Enti
                 </Typography>
             )}
 
-            <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
+            <Box className="hide-scrollbar" sx={{ flexGrow: 1, overflowY: 'auto' }}>
                 {!isExtracting && extractionResult && Object.keys(nestedEntities).length > 0 && (
                     <List dense disablePadding sx={{ px: 1 }}>
                         {Object.entries(nestedEntities).map(([key, data]) => (

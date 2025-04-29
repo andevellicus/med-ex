@@ -77,8 +77,8 @@ function ControlsSidebar({
             </Typography>
             <Divider sx={{ mb: 1, flexShrink: 0 }} />
             {/* Scrollable content area within the sidebar */}
-            <Box sx={{ flexGrow: 1, overflowY: 'auto', pr: 1 /* Add padding right for scrollbar */ }}>
-
+            <Box className="hide-scrollbar" sx={{ flexGrow: 1, overflowY: 'auto', pr: 1 /* Add padding right for scrollbar */ }}>
+                <br /> 
                 {/* Use SchemaSelector Component */}
                 <SchemaSelector
                     schemas={schemas}

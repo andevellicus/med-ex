@@ -181,7 +181,6 @@ const HighlightedText: React.FC<{
 
 // --- Main ResultsDisplay Component ---
 function ResultsDisplay({ extractionResult, isExtracting, extractionError, scrollToTarget, onScrollComplete }: ResultsDisplayProps) {
-    // ... same as before ...
      const hasResultText = !!extractionResult?.text;
         return (
              <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -190,7 +189,7 @@ function ResultsDisplay({ extractionResult, isExtracting, extractionError, scrol
                      extractionError={extractionError}
                      hasResultText={hasResultText}
                  />
-                <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
+                <Box className="hide-scrollbar" sx={{ flexGrow: 1, overflow: 'auto' }}>
                     {!isExtracting && !extractionError && hasResultText && extractionResult && (
                          <HighlightedText
                             text={extractionResult.text}
