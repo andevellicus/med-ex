@@ -27,6 +27,7 @@ function App() {
     const [scrollToTarget, setScrollToTarget] = useState<ScrollTarget | null>(null);
     const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
     const [isEntitiesCollapsed, setIsEntitiesCollapsed] = useState(false);
+    const [_isDragging, setIsDragging] = useState(false);
 
     // --- Refs for Imperative API ---
     const controlsPanelRef = useRef<ImperativePanelHandle>(null);
@@ -95,6 +96,11 @@ function App() {
     const toggleEntitiesCollapse = () => {
         setIsEntitiesCollapsed(e => !e); // Just toggle state, effect handles panel
     };
+    
+    const handleDraggingStateChange = (isDraggingUpdate: boolean) => {
+        setIsDragging(isDraggingUpdate);
+    };
+
 
     // --- Scroll Handler ---
      const handleScrollToEntity = useCallback((entityId: string) => {
@@ -179,7 +185,10 @@ function App() {
                     </Box>
                 </Panel>
 
-                <PanelResizeHandle className="resize-handle-outer" />
+                <PanelResizeHandle 
+                    className="resize-handle-outer"
+                    onDragging={handleDraggingStateChange} />
+
 
                 {/* Main Content Area (Nested PanelGroup) */}
                 <Panel order={2} minSize={minResultsSizePercentage + minEntitiesSizePercentage}>
@@ -202,7 +211,9 @@ function App() {
                             </Box>
                         </Panel>
 
-                        <PanelResizeHandle className="resize-handle-inner" />
+                        <PanelResizeHandle 
+                            className="resize-handle-inner"
+                            onDragging={handleDraggingStateChange} />
 
                         {/* Entities Panel */}
                         <Panel

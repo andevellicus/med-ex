@@ -59,7 +59,7 @@ code {
 .resize-handle-outer,
 .resize-handle-inner {
   width: 6px; /* Width of the vertical handle */
-  background-color: #e0e0e0; /* A light grey color */
+  background-color: transparent; 
   cursor: col-resize;
   display: flex;
   align-items: center;
@@ -67,16 +67,13 @@ code {
   transition: background-color 0.2s ease;
 }
 
+/*
 .resize-handle-outer:hover,
 .resize-handle-inner:hover {
-  background-color: #bdbdbd; /* Darker grey on hover */
+  background-color: #202020; 
 }
+*/
 
-/* Optional: Style when dragging */
-.resize-handle-outer[data-resize-handle-state="drag"],
-.resize-handle-inner[data-resize-handle-state="drag"] {
-  background-color: #9e9e9e; /* Even darker grey when dragging */
-}
 
 /* Optional: Add visual indicator dots/lines */
 .resize-handle-outer::before,
@@ -88,4 +85,24 @@ code {
     background-color: #9e9e9e; /* Color of the dots/line */
     /* Use border-radius for dots, or leave as line */
     /* border-radius: 50%; */
+}
+ 
+[data-panel] { /* Target panels rendered by the library */
+    transition: flex-grow 0.25s ease-in-out, flex-basis 0.25s ease-in-out; /* Animate flex properties */
+    overflow: hidden !important; /* Crucial: Prevent content visibility during transition when collapsing */
+                               /* Use !important cautiously, but often needed here to override inline styles */
+}
+
+/* When ANY handle is being dragged, disable transitions on ALL panels */
+/* This uses :has() which is well-supported in modern browsers */
+body:has([data-resize-handle-state="drag"]) [data-panel] {
+    transition: none; /* Turn off transition */
+}
+
+/* --- Ensure wrapper respects panel animation --- */
+/* Ensure the direct child (our Box wrapper) doesn't overflow the animating panel */
+[data-panel] > .pane-content-wrapper {
+    flex-shrink: 0; /* Prevent wrapper from shrinking unexpectedly */
+    width: 100%;    /* Occupy full width of the panel */
+    height: 100%;   /* Occupy full height of the panel */
 }
