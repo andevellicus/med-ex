@@ -9,7 +9,8 @@ import {
     IconButton,
     Divider,
     CircularProgress,
-    ListItemButton // Keep this
+    ListItemButton,
+    Stack,
 } from '@mui/material';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
@@ -157,7 +158,6 @@ const NestedEntityItem: React.FC<{
     );
 };
 
-
 function EntitiesSidebar({ extractionResult, isExtracting, onEntityClick }: EntitiesSidebarProps) {
 
     const nestedEntities = useMemo(() => {
@@ -166,13 +166,20 @@ function EntitiesSidebar({ extractionResult, isExtracting, onEntityClick }: Enti
     }, [extractionResult]);
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', pt: 6 }}>
-             <Typography variant="h6" gutterBottom component="div" sx={{ px: 2, pb: 0, mt: -1 }}>
-                 Extracted Entities
-             </Typography>
-            <Divider sx={{ mb: 1 }} />
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+             {/* --- Simplified Header --- */}
+             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ px: 0, pb: 0, flexShrink: 0 }}>
+                 <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+                     Extracted Entities
+                 </Typography>
+                 {/* --- Removed Button From Here --- */}
+             </Stack>
+            <Divider sx={{ mb: 1, flexShrink: 0 }} />
+            {/* --- End Header --- */}
 
-            {isExtracting && (
+            {/* --- Content is no longer conditional based on isCollapsed here --- */}
+            {/* Loading / Empty States */}
+             {isExtracting && (
                 <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 3 }}>
                     <CircularProgress size={24} />
                     <Typography variant="body2" sx={{ ml: 2 }}>Loading Entities...</Typography>
@@ -185,9 +192,10 @@ function EntitiesSidebar({ extractionResult, isExtracting, onEntityClick }: Enti
                 </Typography>
             )}
 
-            <Box className="hide-scrollbar" sx={{ flexGrow: 1, overflowY: 'auto' }}>
+             {/* Scrollable List Area */}
+            <Box className="hide-scrollbar" sx={{ flexGrow: 1, overflowY: 'auto', pr: 1 }}>
                 {!isExtracting && extractionResult && Object.keys(nestedEntities).length > 0 && (
-                    <List dense disablePadding sx={{ px: 1 }}>
+                    <List dense disablePadding sx={{ px: 0 }}>
                         {Object.entries(nestedEntities).map(([key, data]) => (
                             <NestedEntityItem
                                 key={key}
@@ -199,6 +207,7 @@ function EntitiesSidebar({ extractionResult, isExtracting, onEntityClick }: Enti
                     </List>
                 )}
             </Box>
+            {/* --- End Content --- */}
         </Box>
     );
 }

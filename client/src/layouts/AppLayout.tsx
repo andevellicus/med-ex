@@ -9,17 +9,27 @@ import {
   useMediaQuery,
   createTheme,
   ThemeProvider,
-  PaletteMode
+  PaletteMode,
 } from '@mui/material';
+import CollapseToggleButton from '../components/CollapseToggleButton'; 
 
 // --- Constants ---
-
 // Define props for AppLayout - it needs to render children components
 interface AppLayoutProps {
   children: React.ReactNode; // To render content passed into it
+  isControlsCollapsed: boolean;
+  toggleControlsCollapse: () => void;
+  isEntitiesCollapsed: boolean;
+  toggleEntitiesCollapse: () => void;
 }
 
-function AppLayout({ children }: AppLayoutProps) {
+function AppLayout({ 
+  children,
+  isControlsCollapsed,
+  toggleControlsCollapse,
+  isEntitiesCollapsed,
+  toggleEntitiesCollapse,
+ }: AppLayoutProps) {
   // --- Theme Mode Detection & State ---
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
   const [mode, setMode] = useState<PaletteMode>(prefersDarkMode ? 'dark' : 'light');
@@ -30,49 +40,53 @@ function AppLayout({ children }: AppLayoutProps) {
 
   // --- Theme Creation (Memoized) ---
   const theme = useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode,
-        },
-      }),
+    () => createTheme({ palette: { mode }}),
     [mode],
   );
+
+  const appBarHeight = theme.mixins.toolbar.minHeight || 64;
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ display: 'flex' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
         <AppBar
           position="fixed"
           sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
         >
           <Toolbar>
-            <Typography variant="h6" noWrap component="div">
+            {/* Collapse Button for Controls Sidebar */}
+              <CollapseToggleButton
+                isCollapsed={isControlsCollapsed}
+                onClick={toggleControlsCollapse}
+                ariaLabel={isControlsCollapsed ? "Expand controls sidebar" : "Collapse controls sidebar"}
+                tooltipPlacement="bottom"
+                sx={{ mr: 1 }}
+            />
+            <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, textAlign: 'center' }}>
               Medical Entity Extraction
             </Typography>
-            {/* Optional: Theme toggle button */}
+                <CollapseToggleButton
+                  isCollapsed={isEntitiesCollapsed}
+                  onClick={toggleEntitiesCollapse}
+                  ariaLabel={isEntitiesCollapsed ? "Expand entities sidebar" : "Collapse entities sidebar"}
+                  tooltipPlacement="bottom"
+                  sx={{ ml: 1 }}
+              />
           </Toolbar>
         </AppBar>
-
-        {/* The Drawer (Sidebar) will be rendered by the parent (App.tsx) */}
-        {/* Or potentially passed as a prop if you prefer */}
 
         {/* Main Content Area Wrapper */}
         <Box
           component="main"
-          sx={{
-            flexGrow: 1,
-            // p: 3, // Padding might be applied by children or here
-            height: '100vh',
-            overflow: 'auto', // Allow content to scroll independently
-          }}
+            sx={{
+                height: `calc(100vh - ${appBarHeight}px)`, // Calculate remaining height
+                mt: `${appBarHeight}px`, // Keep margin-top for spacing below fixed AppBar
+                overflow: 'hidden', // Keep hiding overflow here
+            }}
         >
-          <Toolbar /> {/* Spacer to push content below AppBar */}
           {/* Render the children components passed from App.tsx */}
-          <Box sx={{ p: 3 }}> {/* Add padding around the main content */}
-            {children}
-          </Box>
+          {children}
         </Box>
       </Box>
     </ThemeProvider>

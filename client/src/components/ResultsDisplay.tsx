@@ -10,7 +10,6 @@ interface ResultsDisplayProps {
     isExtracting: boolean;
     extractionError: string | null;
     scrollToTarget: ScrollTarget | null;
-    onScrollComplete: () => void;
 }
 
 interface HighlightInfo {
@@ -28,7 +27,6 @@ const HighlightedText: React.FC<{
     text: string;
     entities: Record<string, EntityOccurrence[]>;
     scrollToTarget: ScrollTarget | null;
-    onScrollComplete: () => void;
 }> = ({ text, entities, scrollToTarget}) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [activeContextId, setActiveContextId] = useState<string | null>(null);
@@ -180,7 +178,7 @@ const HighlightedText: React.FC<{
 };
 
 // --- Main ResultsDisplay Component ---
-function ResultsDisplay({ extractionResult, isExtracting, extractionError, scrollToTarget, onScrollComplete }: ResultsDisplayProps) {
+function ResultsDisplay({ extractionResult, isExtracting, extractionError, scrollToTarget }: ResultsDisplayProps) {
      const hasResultText = !!extractionResult?.text;
         return (
              <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -195,7 +193,6 @@ function ResultsDisplay({ extractionResult, isExtracting, extractionError, scrol
                             text={extractionResult.text}
                             entities={extractionResult.entities}
                             scrollToTarget={scrollToTarget}
-                            onScrollComplete={onScrollComplete}
                          />
                     )}
                  </Box>
