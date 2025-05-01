@@ -61,6 +61,7 @@ function AppLayout({
                 onClick={toggleControlsCollapse}
                 ariaLabel={isControlsCollapsed ? "Expand controls sidebar" : "Collapse controls sidebar"}
                 tooltipPlacement="bottom"
+                sideBarSide='left'
                 sx={{ mr: 1 }}
             />
             <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, textAlign: 'center' }}>
@@ -71,6 +72,7 @@ function AppLayout({
                   onClick={toggleEntitiesCollapse}
                   ariaLabel={isEntitiesCollapsed ? "Expand entities sidebar" : "Collapse entities sidebar"}
                   tooltipPlacement="bottom"
+                  sideBarSide='right'
                   sx={{ ml: 1 }}
               />
           </Toolbar>

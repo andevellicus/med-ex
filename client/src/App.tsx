@@ -189,7 +189,6 @@ function App() {
                     className="resize-handle-outer"
                     onDragging={handleDraggingStateChange} />
 
-
                 {/* Main Content Area (Nested PanelGroup) */}
                 <Panel order={2} minSize={minResultsSizePercentage + minEntitiesSizePercentage}>
                     {/* Ensure outer panel minSize accommodates inner panel minSizes */}

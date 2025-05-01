@@ -8,6 +8,7 @@ interface CollapseToggleButtonProps {
     onClick: () => void;
     ariaLabel: string;
     tooltipPlacement: 'left' | 'right' | 'top' | 'bottom';
+    sideBarSide: 'left' | 'right';
     sx?: object; // Allow passing custom styles
 }
 
@@ -16,11 +17,13 @@ function CollapseToggleButton({
     onClick,
     ariaLabel,
     tooltipPlacement,
+    sideBarSide,
     sx = {}
 }: CollapseToggleButtonProps) {
     const tooltipTitle = isCollapsed ? `Expand` : `Collapse`;
-    // Flip MenuOpenIcon for collapsing right sidebar
-    const icon = isCollapsed ? <MenuIcon fontSize="small" /> : <MenuOpenIcon fontSize="small" sx={tooltipPlacement === 'left' ? { transform: 'scaleX(-1)' } : {}} />;
+    const transformStyle = sideBarSide === 'right' ? { transform: 'scale(-1)' } : {};
+    const icon = isCollapsed ? <MenuIcon fontSize="small" /> : 
+        <MenuOpenIcon fontSize="small" sx={transformStyle} />;
 
     return (
         <Tooltip title={tooltipTitle} placement={tooltipPlacement}>
