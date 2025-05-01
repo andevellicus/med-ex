@@ -1,105 +1,91 @@
 /* src/index.css */
 
+/* General Styles */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
 /* Class to hide scrollbar but keep functionality */
 .hide-scrollbar::-webkit-scrollbar {
   display: none; /* For Chrome, Safari, and Opera */
 }
-
 .hide-scrollbar {
-  -ms-overflow-style: none;  /* For Internet Explorer and Edge */
-  scrollbar-width: none;  /* For Firefox */
+  -ms-overflow-style: none; /* For Internet Explorer and Edge */
+  scrollbar-width: none; /* For Firefox */
   /* Ensure overflow is still enabled to allow scrolling */
   /* The actual overflow value (auto/scroll) should be set on the element itself */
 }
 
-.Resizer {
-  background: #000;
-  opacity: 0.2;
-  z-index: 1;
-  box-sizing: border-box;
-  background-clip: padding-box;
-  /* Make the resizer slightly thicker and easier to grab */
-  transition: all 0.1s ease-in; /* Faster transition */
-}
-
-.Resizer:hover {
-  transition: all 0.1s ease-in; /* Faster transition */
-}
-
-.Resizer.horizontal {
-  height: 11px;
-  margin: -5px 0;
-  border-top: 5px solid rgba(255, 255, 255, 0);
-  border-bottom: 5px solid rgba(255, 255, 255, 0);
-  cursor: row-resize;
-  width: 100%;
-}
-
-.Resizer.horizontal:hover {
-  border-top: 5px solid rgba(0, 0, 0, 0.5);
-  border-bottom: 5px solid rgba(0, 0, 0, 0.5);
-  opacity: 0.5; /* Make hover state more obvious */
-}
-
-.Resizer.vertical {
-  width: 11px;
-  margin: 0 -5px;
-  border-left: 5px solid rgba(255, 255, 255, 0);
-  border-right: 5px solid rgba(255, 255, 255, 0);
-  cursor: col-resize;
-}
-
-.Resizer.vertical:hover {
-  border-left: 5px solid rgba(0, 0, 0, 0.5);
-  border-right: 5px solid rgba(0, 0, 0, 0.5);
-   opacity: 0.5; /* Make hover state more obvious */
-}
-
-.Resizer.disabled {
-  cursor: not-allowed;
-}
-.Resizer.disabled:hover {
-  border-color: transparent;
-}
-
-/* Style the panes to allow scrolling and prevent flex issues */
-.SplitPane {
-    position: relative !important; /* Needed for proper pane sizing */
-    height: 100vh; /* Ensure SplitPane fills the viewport height */
-    overflow: hidden; /* Prevent scrollbars on the SplitPane itself */
-}
-
-.SplitPane > .Pane1,
-.SplitPane > .Pane2 {
-    /* height: 100%; Let SplitPane manage height */
-    overflow-y: auto; /* Allow independent scrolling */
-    overflow-x: hidden;
-    /* Need position relative for potential absolute children within panes */
-    position: relative;
-}
-
 /* Style the content wrapper INSIDE the panes */
-/* Apply padding here instead of directly on Pane1/Pane2 children */
+/* Keep this class if you use it for consistent padding/layout within Panels */
 .pane-content-wrapper {
-    padding: 16px; /* Add padding around the content within each pane */
-    height: 100%; /* Ensure content wrapper takes full height */
-    box-sizing: border-box; /* Include padding in height */
-    display: flex; /* Use flexbox for internal layout if needed */
-    flex-direction: column;
+    padding: 16px;
+    height: 100%;
+    box-sizing: border-box; /* Include padding in height calculation */
+    /* display: flex and flex-direction are now set on the Box sx prop in App.tsx */
+    /* Remove flex properties here if set via sx */
+    overflow: hidden; /* Prevent padding from causing scrollbars on the wrapper itself */
 }
 
-
-/* Ensure Paper inside panes takes full height */
+/* Ensure Paper inside panes takes full height if needed */
 .pane-content-wrapper > .MuiPaper-root {
     height: 100%;
-    display: flex;
-    flex-direction: column;
+    /* display: flex and flex-direction: column are likely already set on the Paper sx */
+    /* width: 100%; If Paper needs to fill wrapper horizontally */
 }
 
 /* Specific adjustments if needed */
+.ResultsDisplayWrapper {
+    padding: 0; /* Results display likely handles its own internal padding/scrolling */
+}
 .ResultsDisplayWrapper .MuiPaper-root {
-    border: none;
-    box-shadow: none;
-    background: transparent;
-    padding: 0; /* Remove default Paper padding if HighlightedText adds its own */
+    /* Remove default Paper styles if ResultsDisplay doesn't use Paper directly */
+    /* border: none; */
+    /* box-shadow: none; */
+    /* background: transparent; */
+}
+
+/* --- ADDED Styles for react-resizable-panels Handles --- */
+.resize-handle-outer,
+.resize-handle-inner {
+  width: 6px; /* Width of the vertical handle */
+  background-color: #e0e0e0; /* A light grey color */
+  cursor: col-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.resize-handle-outer:hover,
+.resize-handle-inner:hover {
+  background-color: #bdbdbd; /* Darker grey on hover */
+}
+
+/* Optional: Style when dragging */
+.resize-handle-outer[data-resize-handle-state="drag"],
+.resize-handle-inner[data-resize-handle-state="drag"] {
+  background-color: #9e9e9e; /* Even darker grey when dragging */
+}
+
+/* Optional: Add visual indicator dots/lines */
+.resize-handle-outer::before,
+.resize-handle-inner::before {
+    content: '';
+    display: block;
+    width: 1px;
+    height: 20px; /* Adjust height */
+    background-color: #9e9e9e; /* Color of the dots/line */
+    /* Use border-radius for dots, or leave as line */
+    /* border-radius: 50%; */
 }
