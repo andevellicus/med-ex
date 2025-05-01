@@ -119,7 +119,7 @@ const NestedEntityItem: React.FC<{
             </ListItemButton>
 
             {/* Collapsible section for children AND occurrences */}
-            <Collapse in={open} timeout="auto" unmountOnExit>
+            <Collapse in={open} timeout={500} unmountOnExit>
                 <List component="div" disablePadding>
                      {/* Render direct occurrences if they exist (indented further) */}
                     {hasOccurrences && entityData.occurrences!.map((occ) => (

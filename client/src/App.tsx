@@ -165,8 +165,7 @@ function App() {
                 onChange={handleControlsDrag}
                 allowResize={!isControlsCollapsed}
                 style={{ height: '100%', position: 'relative' }} // Take full height of parent main area
-                pane1Style={{ overflow: 'hidden', transition: 'width 0.2s ease-in-out' }}
-                pane2Style={{ overflow: 'hidden' }}
+
                 resizerStyle={isControlsCollapsed ? { display: 'none' } : {}}
             >
                 {/* Pane 1: Controls Sidebar */}
