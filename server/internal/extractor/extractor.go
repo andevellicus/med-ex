@@ -33,6 +33,7 @@ type EntityOccurrence struct {
 	Value    any      `json:"value"`
 	Position Position `json:"position"` // Position of the Value in the original text
 	Context  Context  `json:"context"`  // Surrounding context and its position
+	ID       string   `json:"id"`       // Unique identifier for the occurrence
 }
 
 // ExtractionOutput maps an entity name (e.g., "Age", "Vital signs.Temperature")
@@ -198,7 +199,7 @@ func (s *ExtractorService) findEntityPositions(normalizedText string, rawExtract
 			finalOutput[entityName] = []EntityOccurrence{}
 		}
 
-		for _, occurrence := range occurrences {
+		for occIndex, occurrence := range occurrences {
 			// Handle potential nil values from JSON parsing (if LLM returns null)
 			if occurrence.Value == nil || occurrence.Context == "" {
 				s.logger.Warn("Skipping occurrence with nil value or empty context", zap.String("entityName", entityName))
@@ -251,6 +252,7 @@ func (s *ExtractorService) findEntityPositions(normalizedText string, rawExtract
 			}
 
 			contextMatches := contextRegex.FindAllStringIndex(normalizedText, -1)
+			id := fmt.Sprintf("entity-%s-%d", entityName, occIndex)
 
 			if len(contextMatches) > 0 {
 				valueRegexStr := `(?i)` + regexp.QuoteMeta(valueStr) // Case-insensitive search for value
@@ -288,6 +290,7 @@ func (s *ExtractorService) findEntityPositions(normalizedText string, rawExtract
 									Text:     contextStr, // Store the context string provided by LLM
 									Position: Position{Start: runeContextStart, End: runeContextEnd},
 								},
+								ID: id,
 							}
 							finalOutput[entityName] = append(finalOutput[entityName], eo)
 							foundInContext = true
@@ -332,6 +335,7 @@ func (s *ExtractorService) findEntityPositions(normalizedText string, rawExtract
 								Text:     contextStr,                                                         // Still use context text from LLM
 								Position: Position{Start: runeApproxContextStart, End: runeApproxContextEnd}, // Use approximate position
 							},
+							ID: id,
 						}
 						finalOutput[entityName] = append(finalOutput[entityName], eo)
 					}

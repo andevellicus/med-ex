@@ -12,7 +12,7 @@ export interface EntityOccurrence {
   value: any; // Can be string, number, boolean, string[], etc.
   position: Position;
   context: Context;
-  id?: string; // Optional ID for the entity occurrence
+  id: string; 
 }
 
 // This interface should match the JSON structure returned by Go backend's /api/extract endpoint

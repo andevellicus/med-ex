@@ -6,7 +6,7 @@ import { useSchemas } from './hooks/useSchemas';
 import ControlsSidebar from './components/ControlsSidebar';
 import ResultsDisplay from './components/ResultsDisplay';
 import EntitiesSidebar from './components/EntitiesSidebar';
-import { ExtractionResult, ScrollTarget } from './types';
+import { ExtractionResult, EntityOccurrence, ScrollTarget } from './types';
 import AppLayout from './layouts/AppLayout';
 
 // Default sizes can be percentages for react-resizable-panels
@@ -101,7 +101,6 @@ function App() {
         setIsDragging(isDraggingUpdate);
     };
 
-
     // --- Scroll Handler ---
      const handleScrollToEntity = useCallback((entityId: string) => {
         const panelRef = entitiesPanelRef.current;
@@ -117,6 +116,39 @@ function App() {
             setScrollToTarget({ id: entityId, timestamp: Date.now() });
         }
     }, []); // No state dependencies needed if checking ref
+    
+    const handleDeleteAnnotation = useCallback((entityNameToDelete: string, occurrenceIdToDelete: string) => {
+        setExtractionResult(currentResult => {
+            if (!currentResult) return null; // Should not happen if delete is possible, but safety check
+
+            // Deep clone the current entities to avoid direct state mutation
+            const newEntities: Record<string, EntityOccurrence[]> = JSON.parse(JSON.stringify(currentResult.entities));
+
+            // Check if the entity type exists
+            if (!newEntities[entityNameToDelete]) {
+                console.warn(`Entity type "${entityNameToDelete}" not found during deletion.`);
+                return currentResult; // Return original state if type not found
+            }
+
+            // Filter out the occurrence with the matching ID
+            const updatedOccurrences = newEntities[entityNameToDelete].filter(
+                occ => occ.id !== occurrenceIdToDelete
+            );
+
+            // If no occurrences are left for this entity type, remove the type key
+            if (updatedOccurrences.length === 0) {
+                delete newEntities[entityNameToDelete];
+            } else {
+                newEntities[entityNameToDelete] = updatedOccurrences;
+            }
+
+            // Return the updated extraction result structure
+            return {
+                ...currentResult,
+                entities: newEntities,
+            };
+        });
+    }, []); //
 
     // --- Effect for default schema ---
     useEffect(() => {
@@ -241,6 +273,7 @@ function App() {
                                             extractionResult={extractionResult}
                                             isExtracting={isExtracting}
                                             onEntityClick={handleScrollToEntity}
+                                            onDeleteAnnotation={handleDeleteAnnotation}
                                         />
                                     </Paper>
                                 )}

@@ -9,17 +9,29 @@ import {
     IconButton,
     Divider,
     CircularProgress,
+    ListItem,
     ListItemButton,
     Stack,
+    Tooltip
 } from '@mui/material';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { ExtractionResult, EntityOccurrence, NestedEntity } from '../types';
 
 interface EntitiesSidebarProps {
     extractionResult: ExtractionResult | null;
     isExtracting: boolean;
     onEntityClick: (entityId: string) => void;
+    onDeleteAnnotation: (entityName: string, occurrenceId: string) => void;
+}
+
+interface NestedEntityItemProps {
+    entityName: string; // Pass down full entity name for deletion
+    entityData: NestedEntity;
+    level: number;
+    onEntityClick: (entityId: string) => void;
+    onDeleteAnnotation: (entityName: string, occurrenceId: string) => void; // <-- Add delete handler prop
 }
 
 const renderValue = (value: any): string => {
@@ -70,26 +82,26 @@ const buildNestedStructure = (entities: Record<string, EntityOccurrence[]>): Rec
     return structure;
 };
 
-// Recursive component to render nested entities
-const NestedEntityItem: React.FC<{
-    entityData: NestedEntity;
-    level: number;
-    onEntityClick: (entityId: string) => void;
-}> = ({entityData, level, onEntityClick }) => {
-    const [open, setOpen] = useState(true); // Keep default as open for now
-    // Check for actual nested children *data*, not just the empty {} placeholder
-    const hasRealChildren = entityData.children && Object.values(entityData.children).some(child => child.name);
-    const hasOccurrences = entityData.occurrences && entityData.occurrences.length > 0;
-    const canExpand = hasRealChildren || hasOccurrences; // Can expand if it has children OR direct occurrences to show
+    // Recursive component to render nested entities
+    const NestedEntityItem: React.FC<NestedEntityItemProps> = ({
+        entityName, // Full name like "Lab.WBC" or "Age"
+        entityData,
+        level,
+        onEntityClick,
+        onDeleteAnnotation
+    }) => {
+        const [open, setOpen] = useState(true);
+        const hasRealChildren = entityData.children && Object.values(entityData.children).some(child => child.name);
+        const hasOccurrences = entityData.occurrences && entityData.occurrences.length > 0;
+        const canExpand = hasRealChildren || hasOccurrences;
+        const isStructuralOnly = !hasOccurrences && hasRealChildren;
 
-    const handleClick = () => {
-        if (canExpand) { // Only toggle if there's something to expand/collapse
-             setOpen(!open);
-        }
-    };
+        const handleClick = () => { if (canExpand) setOpen(!open); };
 
-    // Determine if this item is purely structural (only holds other nested items)
-    const isStructuralOnly = !hasOccurrences && hasRealChildren;
+        const handleDeleteClick = (event: React.MouseEvent, occurrenceId: string) => {
+            event.stopPropagation(); // Prevent ListItem click event
+            onDeleteAnnotation(entityName, occurrenceId); // Call handler with full name and ID
+        };
 
     return (
         <>
@@ -121,23 +133,43 @@ const NestedEntityItem: React.FC<{
             {/* Collapsible section for children AND occurrences */}
             <Collapse in={open} timeout={500} unmountOnExit>
                 <List component="div" disablePadding>
-                     {/* Render direct occurrences if they exist (indented further) */}
+                    {/* Render direct occurrences */}
                     {hasOccurrences && entityData.occurrences!.map((occ) => (
-                        <ListItemButton
+                        // Use ListItem instead of ListItemButton to contain the button easily
+                        <ListItem
                             key={occ.id}
-                            onClick={() => occ.id && onEntityClick(occ.id)} // Click occurrence scrolls
-                            sx={{ pl: (level + 1) * 2, py: 0.2 }} // Indent occurrences
+                            disablePadding
+                            secondaryAction={ // Add delete button as secondary action
+                                <Tooltip title="Delete Annotation">
+                                    <IconButton
+                                        edge="end"
+                                        aria-label="delete"
+                                        size="small"
+                                        onClick={(e) => handleDeleteClick(e, occ.id)}
+                                    >
+                                        <DeleteIcon fontSize="inherit" />
+                                    </IconButton>
+                                </Tooltip>
+                            }
+                            sx={{ pl: (level + 1) * 2, py: 0.1 }} // Indent occurrences
                         >
-                            <ListItemText
-                                primary={
-                                    <Typography component="span" variant="caption">
-                                        {renderValue(occ.value)}
-                                    </Typography>
-                                }
-                                disableTypography
-                                sx={{ my: 0 }}
-                            />
-                        </ListItemButton>
+                           {/* Make the text clickable for scrolling */}
+                           <ListItemButton
+                                dense // Make item take less vertical space
+                                onClick={() => onEntityClick(occ.id)} // Click text scrolls
+                                sx={{ py: 0.1, mr: 4 }} // Add margin right to avoid overlap with button
+                           >
+                                <ListItemText
+                                    primary={
+                                        <Typography component="span" variant="caption">
+                                            {renderValue(occ.value)}
+                                        </Typography>
+                                    }
+                                    disableTypography
+                                    sx={{ my: 0 }}
+                                />
+                           </ListItemButton>
+                        </ListItem>
                     ))}
 
                     {/* Recursively render children */}
@@ -146,9 +178,11 @@ const NestedEntityItem: React.FC<{
                          childData.name ? (
                              <NestedEntityItem
                                 key={childKey}
+                                entityName={`${entityName}.${childData.name}`} // Pass down full name for deletion
                                 entityData={childData}
                                 level={level + 1}
                                 onEntityClick={onEntityClick}
+                                onDeleteAnnotation={onDeleteAnnotation} // Pass down delete handler
                             />
                          ) : null
                     ))}
@@ -158,7 +192,7 @@ const NestedEntityItem: React.FC<{
     );
 };
 
-function EntitiesSidebar({ extractionResult, isExtracting, onEntityClick }: EntitiesSidebarProps) {
+function EntitiesSidebar({ extractionResult, isExtracting, onEntityClick, onDeleteAnnotation }: EntitiesSidebarProps) {
 
     const nestedEntities = useMemo(() => {
         if (!extractionResult || !extractionResult.entities) return {};
@@ -199,9 +233,11 @@ function EntitiesSidebar({ extractionResult, isExtracting, onEntityClick }: Enti
                         {Object.entries(nestedEntities).map(([key, data]) => (
                             <NestedEntityItem
                                 key={key}
+                                entityName={key} // Pass down full name for deletion
                                 entityData={data}
                                 level={0}
                                 onEntityClick={onEntityClick}
+                                onDeleteAnnotation={onDeleteAnnotation}
                             />
                         ))}
                     </List>
