@@ -119,7 +119,7 @@ func (s *ExtractorService) callLLM(prompt string) (string, error) {
 // formatExtractionPrompt formats the prompt for the LLM based on the Python script's template.
 func (s *ExtractorService) formatExtractionPrompt(schemaName string, text string) (string, error) {
 	// Retrieve the specific schema from the loaded map
-	schema, ok := s.schemas[schemaName]
+	schema, ok := s.Schemas[schemaName]
 	if !ok {
 		s.logger.Error("Schema not found", zap.String("schemaName", schemaName))
 		return "", fmt.Errorf("schema '%s' not found", schemaName)

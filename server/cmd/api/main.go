@@ -74,6 +74,7 @@ func main() {
 	{
 
 		api.GET("/schemas", schemaHandler.GetSchemas)
+		api.GET("/schemas/:schemaName/details", schemaHandler.GetSchemaDetails)
 		api.POST("/extract", extractHandler.ExtractEntities)
 		// Add other API routes here
 	}

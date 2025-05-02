@@ -22,7 +22,7 @@ func loadSchema(schemaPath string) (Schema, error) {
 
 	var schema Schema
 	// Use yaml.v3 Unmarshal (no .UnmarshalStrict needed here unless desired for other reasons)
-	// v3 defaults to map[string]interface{} for nested maps when target is interface{}
+	// v3 defaults to map[string]any for nested maps when target is any
 	err = yaml.Unmarshal(yamlFile, &schema)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal schema YAML from %s: %w", schemaPath, err)

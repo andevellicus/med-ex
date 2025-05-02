@@ -2,11 +2,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle, ImperativePanelHandle } from "react-resizable-panels"; // Use imperative handle
 import { Box, SelectChangeEvent, Paper } from '@mui/material';
+import { ExtractionResult, ScrollTarget } from './types';
 import { useSchemas } from './hooks/useSchemas';
+import { useAnnotationManager } from './hooks/useAnnotationManager';
 import ControlsSidebar from './components/ControlsSidebar';
 import ResultsDisplay from './components/ResultsDisplay';
 import EntitiesSidebar from './components/EntitiesSidebar';
-import { ExtractionResult, EntityOccurrence, ScrollTarget } from './types';
+
 import AppLayout from './layouts/AppLayout';
 
 // Default sizes can be percentages for react-resizable-panels
@@ -21,13 +23,21 @@ function App() {
     // --- State ---
     const { schemas, isLoadingSchemas, schemaError } = useSchemas();
     const [selectedSchema, setSelectedSchema] = useState<string>('');
-    const [extractionResult, setExtractionResult] = useState<ExtractionResult | null>(null);
     const [isExtracting, setIsExtracting] = useState<boolean>(false);
     const [extractionError, setExtractionError] = useState<string | null>(null);
     const [scrollToTarget, setScrollToTarget] = useState<ScrollTarget | null>(null);
     const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
     const [isEntitiesCollapsed, setIsEntitiesCollapsed] = useState(false);
     const [_isDragging, setIsDragging] = useState(false);
+    const [availableEntityNames, setAvailableEntityNames] = useState<string[]>([]);
+    const [schemaLoadingError, setSchemaLoadingError] = useState<string | null>(null);
+
+    const {
+        currentResult,    // Renamed from extractionResult for clarity within App
+        setResult: setAnnotationResult, // Renamed setter for clarity
+        addAnnotation,
+        deleteAnnotation
+    } = useAnnotationManager(null);
 
     // --- Refs for Imperative API ---
     const controlsPanelRef = useRef<ImperativePanelHandle>(null);
@@ -59,27 +69,70 @@ function App() {
         }
     }, [isEntitiesCollapsed]);
 
+    // --- Effect for default schema ---
+    useEffect(() => {
+        if (!isLoadingSchemas && schemas.length > 0 && !selectedSchema) { setSelectedSchema(schemas[0]); }
+        if (!isLoadingSchemas && schemas.length === 0) { setSelectedSchema(''); }
+    }, [schemas, isLoadingSchemas, selectedSchema]);
+
+    useEffect(() => {
+        if (!selectedSchema) {
+            setAvailableEntityNames([]);
+            setSchemaLoadingError(null);
+            return;
+        }
+
+        const fetchSchemaDetails = async () => {
+            setSchemaLoadingError(null);
+            console.log(`Workspaceing schema details for: ${selectedSchema}`);
+            try {
+                const response = await fetch(`/api/schemas/${selectedSchema}/details`); // Call backend endpoint
+                if (!response.ok) {
+                     let errorMsg = `Failed to fetch schema details: ${response.status} ${response.statusText}`;
+                     try {
+                         const errData = await response.json();
+                         if (errData?.error) errorMsg += ` - ${errData.error}`;
+                     } catch (_) { /* Ignore if error body is not JSON */ }
+                    throw new Error(errorMsg);
+                }
+                const data = await response.json();
+                if (!data.entityNames || !Array.isArray(data.entityNames)) {
+                     throw new Error("Invalid response format from schema details endpoint.");
+                }
+                setAvailableEntityNames(data.entityNames);
+                console.log(`Loaded entity names for "${selectedSchema}":`, data.entityNames);
+
+            } catch (error: any) {
+                console.error(`Error fetching schema details for "${selectedSchema}":`, error);
+                setAvailableEntityNames([]);
+                setSchemaLoadingError(`Failed to load entity names for "${selectedSchema}". ${error.message || ''}`);
+            }
+        };
+
+        fetchSchemaDetails();
+    }, [selectedSchema]);
+
     // --- Handlers ---
     const handleSchemaChange = (event: SelectChangeEvent<string>) => {
         setSelectedSchema(event.target.value as string);
-        setExtractionResult(null);
+        setAnnotationResult(null);
         setExtractionError(null);
+        setSchemaLoadingError(null); // Clear schema error on change
     };
 
     const handleExtractStart = () => {
         setIsExtracting(true);
-        setExtractionResult(null);
+        setAnnotationResult(null); 
         setExtractionError(null);
         setScrollToTarget(null);
     };
 
     const handleExtractComplete = (result: ExtractionResult) => {
         setIsExtracting(false);
-        setExtractionResult(result);
-        // Auto-expand entities if collapsed and results found
-        // Use ref to check panel state before changing React state
-        if (entitiesPanelRef.current?.isCollapsed() && Object.keys(result.entities).length > 0) {
-            setIsEntitiesCollapsed(false); // Trigger effect to expand panel
+        setAnnotationResult(result); 
+        // Auto-expand logic remains the same
+        if (entitiesPanelRef.current?.isCollapsed() && result?.entities && Object.keys(result.entities).length > 0) {
+             setIsEntitiesCollapsed(false);
         }
     };
 
@@ -117,44 +170,7 @@ function App() {
         }
     }, []); // No state dependencies needed if checking ref
     
-    const handleDeleteAnnotation = useCallback((entityNameToDelete: string, occurrenceIdToDelete: string) => {
-        setExtractionResult(currentResult => {
-            if (!currentResult) return null; // Should not happen if delete is possible, but safety check
 
-            // Deep clone the current entities to avoid direct state mutation
-            const newEntities: Record<string, EntityOccurrence[]> = JSON.parse(JSON.stringify(currentResult.entities));
-
-            // Check if the entity type exists
-            if (!newEntities[entityNameToDelete]) {
-                console.warn(`Entity type "${entityNameToDelete}" not found during deletion.`);
-                return currentResult; // Return original state if type not found
-            }
-
-            // Filter out the occurrence with the matching ID
-            const updatedOccurrences = newEntities[entityNameToDelete].filter(
-                occ => occ.id !== occurrenceIdToDelete
-            );
-
-            // If no occurrences are left for this entity type, remove the type key
-            if (updatedOccurrences.length === 0) {
-                delete newEntities[entityNameToDelete];
-            } else {
-                newEntities[entityNameToDelete] = updatedOccurrences;
-            }
-
-            // Return the updated extraction result structure
-            return {
-                ...currentResult,
-                entities: newEntities,
-            };
-        });
-    }, []); //
-
-    // --- Effect for default schema ---
-    useEffect(() => {
-        if (!isLoadingSchemas && schemas.length > 0 && !selectedSchema) { setSelectedSchema(schemas[0]); }
-        if (!isLoadingSchemas && schemas.length === 0) { setSelectedSchema(''); }
-    }, [schemas, isLoadingSchemas, selectedSchema]);
 
     // --- Optional: Persistence Handlers (Example) ---
     // const handleOuterLayout = (sizes: number[]) => {
@@ -171,113 +187,75 @@ function App() {
             isEntitiesCollapsed={isEntitiesCollapsed}
             toggleEntitiesCollapse={toggleEntitiesCollapse}
         >
-            <PanelGroup
-                direction="horizontal"
-                style={{ height: '100%' }}
-                // onLayout={handleOuterLayout} // Optional
-                // autoSaveId="app-layout-outer" // Optional & Easier Persistence
-            >
+            <PanelGroup direction="horizontal" style={{ height: '100%' }}>
                 {/* Controls Panel */}
-                <Panel
-                    ref={controlsPanelRef} // Assign ref
-                    order={1}
-                    collapsible={true}
-                    // Removed collapsed and onCollapse props
-                    defaultSize={defaultControlsSizePercentage} // Initial size
-                    minSize={minControlsSizePercentage} // Min size when expanded
-                >
-                    {/* Use Box for consistent padding/styling */}
-                    <Box className="pane-content-wrapper" sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                        {/* Conditionally render based on React state */}
-                        {!isControlsCollapsed && (
-                            <Paper
+                <Panel ref={controlsPanelRef} order={1} collapsible={true} defaultSize={defaultControlsSizePercentage} minSize={minControlsSizePercentage} >
+                     <Box className="pane-content-wrapper" sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                         {!isControlsCollapsed && (
+                                <Paper
                                 elevation={0}
                                 square
                                 sx={(theme) => ({
-                                    bgcolor: 'background.paper',
-                                    borderRight: `1px solid ${theme.palette.divider}`,
-                                    height: '100%',
-                                    display: 'flex', flexDirection: 'column',
-                                    flexGrow: 1,
+                                    bgcolor: 'background.paper', 
+                                    borderRight: `1px solid ${theme.palette.divider}`, // If using borders
+                                    height: '100%', display: 'flex', flexDirection: 'column', flexGrow: 1,
                                 })}
-                            >
+                                >
                                 <ControlsSidebar
-                                    schemas={schemas}
-                                    selectedSchema={selectedSchema}
-                                    isLoadingSchemas={isLoadingSchemas}
-                                    schemaError={schemaError}
-                                    onSchemaChange={handleSchemaChange}
-                                    isExtracting={isExtracting}
-                                    onExtractStart={handleExtractStart}
-                                    onExtractComplete={handleExtractComplete}
-                                    onExtractError={handleExtractError}
-                                />
+                                    // Pass props...
+                                    schemas={schemas} selectedSchema={selectedSchema} isLoadingSchemas={isLoadingSchemas} schemaError={schemaError}
+                                    onSchemaChange={handleSchemaChange} isExtracting={isExtracting} onExtractStart={handleExtractStart}
+                                    onExtractComplete={handleExtractComplete} onExtractError={handleExtractError}
+                                    schemaLoadingError={schemaLoadingError}
+                                 />
                             </Paper>
-                        )}
-                    </Box>
+                         )}
+                     </Box>
                 </Panel>
 
-                <PanelResizeHandle 
-                    className="resize-handle-outer"
-                    onDragging={handleDraggingStateChange} />
+                <PanelResizeHandle className="resize-handle-outer" onDragging={handleDraggingStateChange} />
 
-                {/* Main Content Area (Nested PanelGroup) */}
+                {/* Main Content Area */}
                 <Panel order={2} minSize={minResultsSizePercentage + minEntitiesSizePercentage}>
-                    {/* Ensure outer panel minSize accommodates inner panel minSizes */}
-                    <PanelGroup
-                        direction="horizontal"
-                        style={{ height: '100%' }}
-                        // onLayout={handleInnerLayout} // Optional
-                        // autoSaveId="app-layout-inner" // Optional
-                    >
+                    <PanelGroup direction="horizontal" style={{ height: '100%' }}>
                         {/* Results Panel */}
                         <Panel order={1} minSize={minResultsSizePercentage}>
-                            <Box className="pane-content-wrapper ResultsDisplayWrapper" sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.default', overflow: 'hidden' }}>
-                                <ResultsDisplay
-                                    extractionResult={extractionResult}
-                                    isExtracting={isExtracting}
-                                    extractionError={extractionError}
-                                    scrollToTarget={scrollToTarget}
-                                />
-                            </Box>
+                             <Box className="pane-content-wrapper ResultsDisplayWrapper" sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.default', overflow: 'hidden' }}>
+                                 <ResultsDisplay
+                                     extractionResult={currentResult} // <-- Pass result from hook
+                                     isExtracting={isExtracting}
+                                     extractionError={extractionError}
+                                     scrollToTarget={scrollToTarget}
+                                     availableEntityNames={availableEntityNames}
+                                     onAddAnnotation={addAnnotation}   // <-- Pass handler from hook
+                                 />
+                             </Box>
                         </Panel>
 
-                        <PanelResizeHandle 
-                            className="resize-handle-inner"
-                            onDragging={handleDraggingStateChange} />
+                        <PanelResizeHandle className="resize-handle-inner" onDragging={handleDraggingStateChange} />
 
                         {/* Entities Panel */}
-                        <Panel
-                            ref={entitiesPanelRef} // Assign ref
-                            order={2}
-                            collapsible={true}
-                            // Removed collapsed and onCollapse props
-                            defaultSize={defaultEntitiesSizePercentage}
-                            minSize={minEntitiesSizePercentage}
-                        >
+                        <Panel ref={entitiesPanelRef} order={2} collapsible={true} defaultSize={defaultEntitiesSizePercentage} minSize={minEntitiesSizePercentage} >
                             <Box className="pane-content-wrapper" sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                                {/* Conditionally render based on React state */}
                                 {!isEntitiesCollapsed && (
-                                    <Paper
-                                        elevation={0}
-                                        square
-                                        sx={(theme) => ({
-                                            bgcolor: 'background.paper',
-                                            borderLeft: `1px solid ${theme.palette.divider}`,
-                                            height: '100%',
-                                            display: 'flex', flexDirection: 'column',
-                                            flexGrow: 1,
-                                        })}
-                                    >
+                                        <Paper
+                                            elevation={0}
+                                            square
+                                            sx={(theme) => ({
+                                                bgcolor: 'background.paper', // <-- IS THIS STILL HERE?
+                                                borderLeft: `1px solid ${theme.palette.divider}`, // If using borders
+                                                height: '100%', display: 'flex', flexDirection: 'column', flexGrow: 1,
+                                            })}
+                                        >
                                         <EntitiesSidebar
-                                            extractionResult={extractionResult}
+                                            extractionResult={currentResult} // <-- Pass result from hook
                                             isExtracting={isExtracting}
                                             onEntityClick={handleScrollToEntity}
-                                            onDeleteAnnotation={handleDeleteAnnotation}
+                                            onDeleteAnnotation={deleteAnnotation} // <-- Pass handler from hook
                                         />
                                     </Paper>
                                 )}
-                            </Box>
+                             </Box>
                         </Panel>
                     </PanelGroup>
                 </Panel>

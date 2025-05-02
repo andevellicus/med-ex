@@ -29,7 +29,7 @@ type Context struct {
 // EntityOccurrence represents a single extracted instance of an entity type.
 type EntityOccurrence struct {
 	// Value can be string, number, bool, or even a slice based on schema.
-	// Using 'any' (interface{}) provides flexibility.
+	// Using 'any' (any) provides flexibility.
 	Value    any      `json:"value"`
 	Position Position `json:"position"` // Position of the Value in the original text
 	Context  Context  `json:"context"`  // Surrounding context and its position
@@ -48,7 +48,7 @@ type ExtractorService struct {
 	llmServerURL string
 	httpClient   *http.Client
 	logger       *zap.Logger
-	schemas      map[string]Schema
+	Schemas      map[string]Schema
 	schemaNames  []string
 }
 
@@ -79,7 +79,7 @@ func NewExtractorService(cfg *config.Config, logger *zap.Logger, projectRoot str
 			Timeout: 90 * time.Second,
 		},
 		logger:      logger.Named("extractor"), // Keep logger instance in service
-		schemas:     schemas,
+		Schemas:     schemas,
 		schemaNames: schemaNames,
 	}, nil
 }
@@ -87,7 +87,7 @@ func NewExtractorService(cfg *config.Config, logger *zap.Logger, projectRoot str
 // ExtractEntities processes text content using the specified schema
 func (s *ExtractorService) ExtractEntities(schemaName string, content string) (map[string]any, error) {
 	// Check if schema exists
-	_, exists := s.schemas[schemaName]
+	_, exists := s.Schemas[schemaName]
 	if !exists {
 		return nil, fmt.Errorf("schema '%s' not found", schemaName)
 	}

@@ -6,7 +6,8 @@ import {
     Typography,
     Divider,
     Button,
-    CircularProgress
+    CircularProgress,
+    Alert
 } from '@mui/material';
 import { ExtractionResult } from '../types';
 import SchemaSelector from './SchemaSelector'; // Import new component
@@ -23,6 +24,7 @@ interface ControlsSidebarProps {
     onExtractStart: () => void;
     onExtractComplete: (result: ExtractionResult) => void;
     onExtractError: (error: string) => void;
+    schemaLoadingError: string | null;
 }
 
 function ControlsSidebar({
@@ -34,7 +36,8 @@ function ControlsSidebar({
     isExtracting,
     onExtractStart,
     onExtractComplete,
-    onExtractError
+    onExtractError,
+    schemaLoadingError
 }: ControlsSidebarProps) {
     const [file, setFile] = useState<File | null>(null);
 
@@ -87,7 +90,12 @@ function ControlsSidebar({
                     schemaError={schemaError}
                     onSchemaChange={onSchemaChange}
                 />
-
+                {/* Display the schema content/details loading error */}
+                {schemaLoadingError && (
+                     <Alert severity="warning" sx={{ mt: 1, fontSize: '0.8rem' }}>
+                         {schemaLoadingError}
+                     </Alert>
+                )}
                 {/* Use FileUploadZone Component */}
                 <FileUploadZone
                     onFileSelect={handleFileSelect}
