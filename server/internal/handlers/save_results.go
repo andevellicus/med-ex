@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/andevellicus/med-ex/internal/extractor" // Assuming types are here
 	"github.com/gin-gonic/gin"
@@ -19,6 +18,7 @@ type SaveResultsRequest struct {
 	SchemaName string                                  `json:"schemaName" binding:"required"`
 	Text       string                                  `json:"text" binding:"required"`
 	Entities   map[string][]extractor.EntityOccurrence `json:"entities"` // Use the existing type
+	FileName   string                                  `json:"fileName" binding:"required"`
 }
 
 // SaveResultsResponse defines the JSON structure for the results file.
@@ -60,6 +60,12 @@ func (h *SaveResultsHandler) SaveResults(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Text content cannot be empty"})
 		return
 	}
+	if req.FileName == "" { // Added check
+		h.Logger.Warn("Save request received without original filename")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Original filename is missing"})
+		return
+	}
+
 	// Basic sanitization for schema name (prevent path traversal)
 	cleanSchemaName := filepath.Base(req.SchemaName)
 	if cleanSchemaName != req.SchemaName || strings.Contains(cleanSchemaName, "..") {
@@ -73,11 +79,10 @@ func (h *SaveResultsHandler) SaveResults(c *gin.Context) {
 	}
 	// --- End Validation ---
 
-	// Get current date string
-	dateStr := time.Now().Format("2006-01-02") // YYYY-MM-DD format
+	folderName := sanitizeFilenameForFolder(req.FileName)
 
 	// Create target directory path
-	targetDir := filepath.Join(h.ResultsBaseDir, dateStr)
+	targetDir := filepath.Join(h.ResultsBaseDir, folderName)
 
 	// Create the directory if it doesn't exist
 	if err := os.MkdirAll(targetDir, 0755); err != nil {
@@ -136,6 +141,31 @@ func (h *SaveResultsHandler) SaveResults(c *gin.Context) {
 	h.Logger.Info("Saved results JSON file", zap.String("path", resultsTargetPath))
 
 	// --- Success Response ---
-	h.Logger.Info("Successfully saved results", zap.String("schema", cleanSchemaName), zap.String("date_folder", dateStr))
-	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Results saved successfully to folder %s", dateStr)})
+	h.Logger.Info("Successfully saved results",
+		zap.String("schema", cleanSchemaName),
+		zap.String("filename", req.FileName),
+		zap.String("folder_name", folderName)) // Log the derived folder name
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Results saved successfully to folder '%s'", folderName)})
+
+}
+
+// --- Function to sanitize filename for folder name ---
+func sanitizeFilenameForFolder(filename string) string {
+	// 1. Remove extension
+	nameWithoutExt := strings.TrimSuffix(filename, filepath.Ext(filename))
+	// 2. Replace spaces with underscores
+	nameWithUnderscores := strings.ReplaceAll(nameWithoutExt, " ", "_")
+	// 3. Basic sanitization: Keep alphanumeric, underscore, hyphen. Remove others.
+	//    (More robust sanitization might be needed for production)
+	sanitized := ""
+	for _, r := range nameWithUnderscores {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' || r == '-' {
+			sanitized += string(r)
+		}
+	}
+	// Prevent empty folder names
+	if sanitized == "" {
+		sanitized = "untitled_result"
+	}
+	return sanitized
 }

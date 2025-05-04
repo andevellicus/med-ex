@@ -82,7 +82,7 @@ function ControlsSidebar({
     
     // --- Handle Save Button Click (SERVER-SIDE SAVE) ---
     const handleSave = async () => {
-        if (!currentResult || !selectedSchema) {
+        if (!currentResult || !selectedSchema || !file) {
             setSaveStatus({ open: true, message: 'Cannot save: No results available or no schema selected.', severity: 'error' });
             return;
         }
@@ -97,6 +97,7 @@ function ControlsSidebar({
                 schemaName: selectedSchema,
                 text: currentResult.text,
                 entities: entitiesToSave, // Send current entities
+                fileName: file.name
             };
 
             const response = await fetch('/api/save-results', {
@@ -180,7 +181,7 @@ function ControlsSidebar({
                         variant="outlined" 
                         fullWidth
                         color="secondary"
-                        disabled={!currentResult || !selectedSchema || isSaving || isExtracting}
+                        disabled={!currentResult || !selectedSchema || !file || isSaving || isExtracting}
                         onClick={handleSave} // Calls the updated server-side save function
                         startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
                     >

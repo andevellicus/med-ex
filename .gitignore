@@ -8,10 +8,9 @@ client/dist/
 # Misc TSX:
 client/package-lock.json
 
-# Logs
+# Misc dirs
 logs/
-
-# Results
+outputs/
 results/
 
 # OS generated files

@@ -244,8 +244,6 @@ func (s *ExtractorService) parseLLMResponse(llmResponseString string) (RawLLMExt
 		s.logger.Error("LLM response does not appear to be a valid JSON object",
 			zap.String("inner_json_snippet", limitString(llmResponseString, 100)), // Log a snippet
 		)
-		// Optionally log the full llmResponseString if needed for debugging, but be mindful of size
-		// zap.String("full_cleaned_response", llmResponseString)
 		return nil, fmt.Errorf("LLM response is not a JSON object: %s...", limitString(llmResponseString, 50))
 	}
 
@@ -256,7 +254,6 @@ func (s *ExtractorService) parseLLMResponse(llmResponseString string) (RawLLMExt
 			zap.Error(err),
 			zap.String("response_snippet", limitString(llmResponseString, 100)), // Log snippet on error
 		)
-		// zap.String("full_response", llmResponseString) // Optional: log full string on error
 		return nil, fmt.Errorf("failed to unmarshal LLM JSON: %w", err)
 	}
 
