@@ -11,6 +11,9 @@ client/package-lock.json
 # Logs
 logs/
 
+# Results
+results/
+
 # OS generated files
 .DS_Store
 Thumbs.db

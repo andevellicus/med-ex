@@ -73,7 +73,6 @@ export function TextInteractionWrapper({
                       setShowPopup(false); return;
                   }
             }
-            console.log("Selection calculation:", { selectedText, charStart, charEnd });
         } catch (error) {
             console.error("Error calculating selection offsets:", error);
             setShowPopup(false); return;

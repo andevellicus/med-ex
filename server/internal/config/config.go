@@ -12,6 +12,7 @@ type Config struct {
 	Server struct {
 		Port string `mapstructure:"port"`
 	} `mapstructure:"server"`
+
 	Log struct {
 		Level      string `mapstructure:"level"`
 		MaxSizeMB  int    `mapstructure:"max_size_mb"`
@@ -20,10 +21,15 @@ type Config struct {
 		Compress   bool   `mapstructure:"compress"`
 		LogDir     string `mapstructure:"log_dir"`
 	} `mapstructure:"log"`
+
 	LLM struct {
 		ServerURL string `mapstructure:"server"`
 		SchemaDir string `mapstructure:"schema_dir"`
 	} `mapstructure:"llm"`
+
+	Results struct {
+		Dir string `mapstructure:"dir"`
+	} `mapstructure:"results"`
 }
 
 // NewDefaultConfig returns a Config struct with default values.
@@ -56,6 +62,11 @@ func NewDefaultConfig() *Config {
 			ServerURL: "http://127.0.0.1:5000",
 			SchemaDir: "config/",
 		},
+		Results: struct {
+			Dir string `mapstructure:"dir"`
+		}{
+			Dir: "./results",
+		},
 	}
 }
 
@@ -63,9 +74,16 @@ func NewDefaultConfig() *Config {
 func LoadConfig(configPath string) (*Config, error) {
 	cfg := NewDefaultConfig() // Load default values
 
-	viper.SetConfigFile(configPath)
-	viper.SetConfigType("yaml") // Or the appropriate type for your config file
-	viper.AutomaticEnv()        // Read in environment variables that match
+	if configPath != "" { // Only configure Viper if a path is provided
+		viper.SetConfigFile(configPath)
+		viper.SetConfigType("yaml")
+	} else {
+		// Optionally set defaults or search paths if no config file is mandatory
+		// For now, we rely on the defaults set in NewDefaultConfig
+		fmt.Println("Warning: No configuration file path provided, using default values.")
+	}
+
+	viper.AutomaticEnv() // Read in environment variables that match
 
 	// Replace environment variable prefixes (e.g., APP_) with the nested structure
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))

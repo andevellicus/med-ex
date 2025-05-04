@@ -46,28 +46,41 @@ func main() {
 	}
 	defer log.Sync()
 
+	schemaDir := cfg.LLM.SchemaDir
+	if !filepath.IsAbs(schemaDir) {
+		schemaDir = filepath.Join(rootPath, schemaDir)
+	}
+
+	resultsDir := cfg.Results.Dir
+	if !filepath.IsAbs(resultsDir) {
+		resultsDir = filepath.Join(rootPath, resultsDir)
+	}
+
 	// --- Add Service Initialization ---
 	extractorService, err := extractor.NewExtractorService(cfg, log, rootPath)
 	if err != nil {
 		log.Fatal("Failed to initialize extractor service", zap.Error(err))
 	}
 	log.Info("Extractor service initialized")
+
 	// --- Add Handler Initialization ---
-	schemaHandler := handlers.NewSchemaHandler(extractorService, log)
+	schemaHandler := handlers.NewSchemaHandler(extractorService, log, schemaDir)
 	extractHandler := handlers.NewExtractHandler(extractorService, log)
+	saveResultsHandler := handlers.NewSaveResultsHandler(resultsDir, schemaDir, log)
 	log.Info("Handlers initialized")
 
 	// Set Gin mode
 	if os.Getenv("GO_ENV") == "production" {
 		gin.SetMode(gin.ReleaseMode)
+		log.Info("Running in production mode")
+	} else {
+		gin.SetMode(gin.DebugMode)
+		log.Info("Running in development mode")
 	}
 
 	router := gin.New()
 	router.Use(gin.Recovery())
-	router.Use(func(c *gin.Context) {
-		c.Set("logger", log)
-		c.Next()
-	})
+	router.Use(logger.LoggerMiddleware(log))
 
 	// --- Add API Route ---
 	api := router.Group("/api") // Group API routes
@@ -76,6 +89,7 @@ func main() {
 		api.GET("/schemas", schemaHandler.GetSchemas)
 		api.GET("/schemas/:schemaName/details", schemaHandler.GetSchemaDetails)
 		api.POST("/extract", extractHandler.ExtractEntities)
+		api.POST("/save-results", saveResultsHandler.SaveResults)
 		// Add other API routes here
 	}
 

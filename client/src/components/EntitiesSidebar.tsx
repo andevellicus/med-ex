@@ -49,13 +49,6 @@ const buildNestedStructure = (entities: Record<string, EntityOccurrence[]>): Rec
         let currentLevel = structure;
         let currentPath = '';
 
-         // Ensure ID is added to each occurrence *before* assigning to structure
-        const occurrencesWithId = occurrences.map((occ, index) => ({
-            ...occ,
-            id: `entity-${fullName}-${index}`
-        }));
-
-
         parts.forEach((part, index) => {
             currentPath = currentPath ? `${currentPath}.${part}` : part;
             if (!currentLevel[part]) {
@@ -65,7 +58,7 @@ const buildNestedStructure = (entities: Record<string, EntityOccurrence[]>): Rec
 
             if (index === parts.length - 1) {
                 // Final entity name part: Assign occurrences
-                currentLevel[part].occurrences = occurrencesWithId;
+                currentLevel[part].occurrences = occurrences;
                  // Ensure children is defined if it was already treated as parent
                  if (!currentLevel[part].children) {
                     currentLevel[part].children = {}; // Keep expandable for consistency if needed
@@ -83,7 +76,7 @@ const buildNestedStructure = (entities: Record<string, EntityOccurrence[]>): Rec
 };
 
     // Recursive component to render nested entities
-    const NestedEntityItem: React.FC<NestedEntityItemProps> = ({
+const NestedEntityItem: React.FC<NestedEntityItemProps> = ({
         entityName, // Full name like "Lab.WBC" or "Age"
         entityData,
         level,

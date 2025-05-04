@@ -7,8 +7,10 @@ import {
     Divider,
     Button,
     CircularProgress,
-    Alert
+    Alert,
+    Snackbar
 } from '@mui/material';
+import SaveIcon from '@mui/icons-material/Save'
 import { ExtractionResult } from '../types';
 import SchemaSelector from './SchemaSelector'; // Import new component
 import FileUploadZone from './FileUploadZone'; // Import new component
@@ -25,6 +27,7 @@ interface ControlsSidebarProps {
     onExtractComplete: (result: ExtractionResult) => void;
     onExtractError: (error: string) => void;
     schemaLoadingError: string | null;
+    currentResult: ExtractionResult | null;
 }
 
 function ControlsSidebar({
@@ -37,9 +40,14 @@ function ControlsSidebar({
     onExtractStart,
     onExtractComplete,
     onExtractError,
-    schemaLoadingError
+    schemaLoadingError,
+    currentResult
 }: ControlsSidebarProps) {
     const [file, setFile] = useState<File | null>(null);
+    const [isSaving, setIsSaving] = useState<boolean>(false); // State for save loading
+    const [saveStatus, setSaveStatus] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>(
+        { open: false, message: '', severity: 'info' } // Default severity info or success
+    );
 
     // Handle file selection from FileUploadZone
     const handleFileSelect = (selectedFile: File | null) => {
@@ -70,6 +78,58 @@ function ControlsSidebar({
             console.error('Error during extraction:', error);
             onExtractError(error instanceof Error ? error.message : 'Unknown error occurred');
         }
+    };
+    
+    // --- Handle Save Button Click (SERVER-SIDE SAVE) ---
+    const handleSave = async () => {
+        if (!currentResult || !selectedSchema) {
+            setSaveStatus({ open: true, message: 'Cannot save: No results available or no schema selected.', severity: 'error' });
+            return;
+        }
+        // Ensure entities is at least an empty object if null/undefined in result
+        const entitiesToSave = currentResult.entities ?? {};
+
+        setIsSaving(true);
+        setSaveStatus({ open: false, message: '', severity: 'info' }); // Clear previous status
+
+        try {
+            const payload = {
+                schemaName: selectedSchema,
+                text: currentResult.text,
+                entities: entitiesToSave, // Send current entities
+            };
+
+            const response = await fetch('/api/save-results', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const responseData = await response.json(); // Assume backend sends JSON response
+
+            if (!response.ok) {
+                // Use error message from backend if available
+                throw new Error(responseData.error || `Failed to save results: ${response.statusText}`);
+            }
+
+            // Use success message from backend if available
+            setSaveStatus({ open: true, message: responseData.message || 'Results saved successfully!', severity: 'success' });
+
+        } catch (error: any) {
+            console.error("Error saving results:", error);
+            setSaveStatus({ open: true, message: `Error saving results: ${error.message}`, severity: 'error' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+     const handleCloseSnackbar = (_event?: React.SyntheticEvent | Event, reason?: string) => {
+        if (reason === 'clickaway') {
+            return;
+        }
+        setSaveStatus({ ...saveStatus, open: false });
     };
 
     return (
@@ -114,6 +174,29 @@ function ControlsSidebar({
                     >
                         {isExtracting ? 'Processing...' : 'Extract Entities'}
                     </Button>
+
+                     {/* Save button */}
+                     <Button
+                        variant="outlined" 
+                        fullWidth
+                        color="secondary"
+                        disabled={!currentResult || !selectedSchema || isSaving || isExtracting}
+                        onClick={handleSave} // Calls the updated server-side save function
+                        startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+                    >
+                        {isSaving ? 'Saving...' : 'Save Results'}
+                    </Button>
+                    {/* Snackbar for Feedback */}
+                    <Snackbar
+                        open={saveStatus.open}
+                        autoHideDuration={6000}
+                        onClose={handleCloseSnackbar}
+                        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                    >
+                        <Alert onClose={handleCloseSnackbar} severity={saveStatus.severity} sx={{ width: '100%' }} variant="filled">
+                            {saveStatus.message}
+                        </Alert>
+                    </Snackbar>                   
                 </Box>
             </Box> {/* End Scrollable content area */}
         </Box> // End Main Box

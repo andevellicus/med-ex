@@ -46,7 +46,6 @@ export function useAnnotationManager(
                 id: `manual-${entityName}-${Date.now()}` // Unique ID
             };
 
-            console.log("Adding new annotation:", newOccurrence);
             const newEntities = { ...prevResult.entities };
             const currentList = newEntities[entityName] ? [...newEntities[entityName]] : [];
             currentList.push(newOccurrence);
@@ -58,7 +57,6 @@ export function useAnnotationManager(
 
     // Function to delete an existing annotation
     const deleteAnnotation = useCallback((entityNameToDelete: string, occurrenceIdToDelete: string) => {
-        console.log(`Attempting to delete: ${entityNameToDelete} - ID: ${occurrenceIdToDelete}`);
         setCurrentResult(prevResult => {
             if (!prevResult?.entities?.[entityNameToDelete]) {
                 console.warn(`Entity type "${entityNameToDelete}" not found during deletion.`);
@@ -83,7 +81,6 @@ export function useAnnotationManager(
             }
 
             const newState = { ...prevResult, entities: newEntities };
-            console.log("Delete successful. New state:", newState);
             return newState; // Return the new state object reference
         });
     }, []); // No external dependencies needed

@@ -14,14 +14,16 @@ import (
 )
 
 type SchemaHandler struct {
-	Extractor *extractor.ExtractorService
-	Logger    *zap.Logger
+	Extractor     *extractor.ExtractorService
+	Logger        *zap.Logger
+	SchemaBaseDir string
 }
 
-func NewSchemaHandler(extractor *extractor.ExtractorService, logger *zap.Logger) *SchemaHandler {
+func NewSchemaHandler(extractor *extractor.ExtractorService, logger *zap.Logger, schemaBaseDir string) *SchemaHandler {
 	return &SchemaHandler{
-		Extractor: extractor,
-		Logger:    logger.Named("SchemaHandler"),
+		Extractor:     extractor,
+		Logger:        logger.Named("SchemaHandler"),
+		SchemaBaseDir: schemaBaseDir,
 	}
 }
 
@@ -60,6 +62,7 @@ func (h *SchemaHandler) GetSchemaDetails(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"entityNames": entityNames})
 }
+
 func (h *SchemaHandler) getSchemaByName(name string) (extractor.Schema, bool) {
 	schema, found := h.Extractor.Schemas[name]
 	// Return a copy? Deep copy might be needed if modifications are possible elsewhere

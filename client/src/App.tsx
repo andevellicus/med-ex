@@ -84,7 +84,6 @@ function App() {
 
         const fetchSchemaDetails = async () => {
             setSchemaLoadingError(null);
-            console.log(`Workspaceing schema details for: ${selectedSchema}`);
             try {
                 const response = await fetch(`/api/schemas/${selectedSchema}/details`); // Call backend endpoint
                 if (!response.ok) {
@@ -100,7 +99,6 @@ function App() {
                      throw new Error("Invalid response format from schema details endpoint.");
                 }
                 setAvailableEntityNames(data.entityNames);
-                console.log(`Loaded entity names for "${selectedSchema}":`, data.entityNames);
 
             } catch (error: any) {
                 console.error(`Error fetching schema details for "${selectedSchema}":`, error);
@@ -202,11 +200,17 @@ function App() {
                                 })}
                                 >
                                 <ControlsSidebar
-                                    // Pass props...
-                                    schemas={schemas} selectedSchema={selectedSchema} isLoadingSchemas={isLoadingSchemas} schemaError={schemaError}
-                                    onSchemaChange={handleSchemaChange} isExtracting={isExtracting} onExtractStart={handleExtractStart}
-                                    onExtractComplete={handleExtractComplete} onExtractError={handleExtractError}
+                                    schemas={schemas}
+                                    selectedSchema={selectedSchema}
+                                    isLoadingSchemas={isLoadingSchemas}
+                                    schemaError={schemaError}
+                                    onSchemaChange={handleSchemaChange}
+                                    isExtracting={isExtracting}
+                                    onExtractStart={handleExtractStart}
+                                    onExtractComplete={handleExtractComplete}
+                                    onExtractError={handleExtractError}
                                     schemaLoadingError={schemaLoadingError}
+                                    currentResult={currentResult}
                                  />
                             </Paper>
                          )}

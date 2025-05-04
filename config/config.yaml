@@ -12,3 +12,6 @@ log:
 llm:
   server: "http://127.0.0.1:5000/completions"
   schema_dir: "config/schemas"
+
+results:
+  dir: "results"
