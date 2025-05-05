@@ -1,7 +1,7 @@
 // src/App.tsx
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle, ImperativePanelHandle } from "react-resizable-panels"; // Use imperative handle
-import { Box, SelectChangeEvent, Paper } from '@mui/material';
+import { Box, Paper } from '@mui/material';
 import { ExtractionResult, ScrollTarget } from './types';
 import { useSchemas } from './hooks/useSchemas';
 import { useAnnotationManager } from './hooks/useAnnotationManager';
@@ -22,7 +22,7 @@ const minResultsSizePercentage = 20; // Min size for the middle panel
 function App() {
     // --- State ---
     const { schemas, isLoadingSchemas, schemaError } = useSchemas();
-    const [selectedSchema, setSelectedSchema] = useState<string>('');
+    const [selectedSchemas, setSelectedSchemas] = useState<string[]>([]);
     const [isExtracting, setIsExtracting] = useState<boolean>(false);
     const [extractionError, setExtractionError] = useState<string | null>(null);
     const [scrollToTarget, setScrollToTarget] = useState<ScrollTarget | null>(null);
@@ -71,12 +71,17 @@ function App() {
 
     // --- Effect for default schema ---
     useEffect(() => {
-        if (!isLoadingSchemas && schemas.length > 0 && !selectedSchema) { setSelectedSchema(schemas[0]); }
-        if (!isLoadingSchemas && schemas.length === 0) { setSelectedSchema(''); }
-    }, [schemas, isLoadingSchemas, selectedSchema]);
+        if (!isLoadingSchemas && schemas.length > 0 && selectedSchemas.length === 0) {
+             setSelectedSchemas([]);
+        }
+        if (!isLoadingSchemas && schemas.length === 0) {
+            setSelectedSchemas([]); // Clear selection if no schemas available
+        }
+        // Only run when schemas load or selection is currently empty
+    }, [schemas, isLoadingSchemas]);
 
     useEffect(() => {
-        if (!selectedSchema) {
+        if (selectedSchemas.length === 0) {
             setAvailableEntityNames([]);
             setSchemaLoadingError(null);
             return;
@@ -84,38 +89,45 @@ function App() {
 
         const fetchSchemaDetails = async () => {
             setSchemaLoadingError(null);
+            setAvailableEntityNames([]); // Clear previous while loading
+
+             // Construct query string: ?schemas=schema1&schemas=schema2
+             const queryParams = new URLSearchParams(
+                selectedSchemas.map(s => ['schemas', s])
+             ).toString();
+
             try {
-                const response = await fetch(`/api/schemas/${selectedSchema}/details`); // Call backend endpoint
+                const response = await fetch(`/api/schemas/details?${queryParams}`); // Call updated backend endpoint
                 if (!response.ok) {
-                     let errorMsg = `Failed to fetch schema details: ${response.status} ${response.statusText}`;
-                     try {
-                         const errData = await response.json();
-                         if (errData?.error) errorMsg += ` - ${errData.error}`;
-                     } catch (_) { /* Ignore if error body is not JSON */ }
+                    let errorMsg = `Failed to fetch combined schema details: ${response.status} ${response.statusText}`;
+                    try {
+                        const errData = await response.json();
+                        if (errData?.error) errorMsg += ` - ${errData.error}`;
+                    } catch (_) { /* Ignore */ }
                     throw new Error(errorMsg);
                 }
                 const data = await response.json();
                 if (!data.entityNames || !Array.isArray(data.entityNames)) {
-                     throw new Error("Invalid response format from schema details endpoint.");
+                    throw new Error("Invalid response format from schema details endpoint.");
                 }
                 setAvailableEntityNames(data.entityNames);
 
             } catch (error: any) {
-                console.error(`Error fetching schema details for "${selectedSchema}":`, error);
+                console.error(`Error fetching combined schema details:`, error);
                 setAvailableEntityNames([]);
-                setSchemaLoadingError(`Failed to load entity names for "${selectedSchema}". ${error.message || ''}`);
+                setSchemaLoadingError(`Failed to load entity names for selected schemas. ${error.message || ''}`);
             }
         };
 
         fetchSchemaDetails();
-    }, [selectedSchema]);
+    }, [selectedSchemas]);
 
     // --- Handlers ---
-    const handleSchemaChange = (event: SelectChangeEvent<string>) => {
-        setSelectedSchema(event.target.value as string);
-        setAnnotationResult(null);
+    const handleSchemaSelectionChange = (newSelectedSchemas: string[]) => {
+        setSelectedSchemas(newSelectedSchemas);
+        setAnnotationResult(null); // Clear results when schema selection changes
         setExtractionError(null);
-        setSchemaLoadingError(null); // Clear schema error on change
+        setSchemaLoadingError(null);
     };
 
     const handleExtractStart = () => {
@@ -168,16 +180,6 @@ function App() {
         }
     }, []); // No state dependencies needed if checking ref
     
-
-
-    // --- Optional: Persistence Handlers (Example) ---
-    // const handleOuterLayout = (sizes: number[]) => {
-    //     localStorage.setItem('panelSizeControls', JSON.stringify(sizes[0]));
-    // };
-    // const handleInnerLayout = (sizes: number[]) => {
-    //      localStorage.setItem('panelSizeMain', JSON.stringify(sizes));
-    // };
-
     return (
         <AppLayout
             isControlsCollapsed={isControlsCollapsed}
@@ -201,10 +203,10 @@ function App() {
                                 >
                                 <ControlsSidebar
                                     schemas={schemas}
-                                    selectedSchema={selectedSchema}
+                                    selectedSchemas={selectedSchemas}
                                     isLoadingSchemas={isLoadingSchemas}
                                     schemaError={schemaError}
-                                    onSchemaChange={handleSchemaChange}
+                                    onSchemaSelectionChange={handleSchemaSelectionChange}
                                     isExtracting={isExtracting}
                                     onExtractStart={handleExtractStart}
                                     onExtractComplete={handleExtractComplete}

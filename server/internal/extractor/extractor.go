@@ -50,37 +50,47 @@ type ExtractorService struct {
 	logger       *zap.Logger
 	Schemas      map[string]Schema
 	schemaNames  []string
+	SchemaFiles  map[string]string
 }
 
 func NewExtractorService(cfg *config.Config, logger *zap.Logger, projectRoot string) (*ExtractorService, error) {
 	llmURL := cfg.LLM.ServerURL
-	schemasDir := filepath.Join(projectRoot, cfg.LLM.SchemaDir) // Use absolute path
+	// Ensure schema dir path is absolute
+	schemasDir := cfg.LLM.SchemaDir
+	if !filepath.IsAbs(schemasDir) {
+		schemasDir = filepath.Join(projectRoot, schemasDir)
+	}
+	logger.Info("Resolved schema directory", zap.String("path", schemasDir))
 
-	// Validate URL format
 	_, err := url.ParseRequestURI(llmURL)
 	if err != nil {
 		logger.Error("Invalid LLM Server URL configured", zap.String("url", llmURL), zap.Error(err))
 		return nil, fmt.Errorf("invalid llm server url: %w", err)
 	}
 
-	// Load Schemas from directory
-	schemas, schemaNames, err := loadSchemasFromDir(schemasDir, logger)
+	// Load Schemas AND their file paths
+	schemas, schemaNames, schemaFiles, err := loadSchemasFromDir(schemasDir, logger) // Modified return
 	if err != nil {
 		logger.Error("Failed to load schemas", zap.String("directory", schemasDir), zap.Error(err))
 		return nil, fmt.Errorf("failed to load schemas from %s: %w", schemasDir, err)
 	}
 	if len(schemas) == 0 {
-		logger.Error("No schemas found in directory", zap.String("directory", schemasDir))
+		// This might be acceptable, but log a warning
+		logger.Warn("No schemas found or loaded from directory", zap.String("directory", schemasDir))
+		// return nil, fmt.Errorf("no schemas found in directory: %s", schemasDir) // Changed to Warning
+	} else {
+		logger.Info("Successfully loaded schemas", zap.Strings("names", schemaNames))
 	}
 
 	return &ExtractorService{
 		llmServerURL: llmURL,
 		httpClient: &http.Client{
-			Timeout: 90 * time.Second,
+			Timeout: 5 * time.Minute, // Keep existing timeout
 		},
-		logger:      logger.Named("extractor"), // Keep logger instance in service
+		logger:      logger.Named("extractor"),
 		Schemas:     schemas,
 		schemaNames: schemaNames,
+		SchemaFiles: schemaFiles, // Store file paths
 	}, nil
 }
 
@@ -91,11 +101,6 @@ func (s *ExtractorService) ExtractEntities(schemaName string, content string) (m
 	if !exists {
 		return nil, fmt.Errorf("schema '%s' not found", schemaName)
 	}
-
-	// In a real implementation, you would:
-	// 1. Prepare the content (normalize, clean, etc.)
-	// 2. Send to LLM service with the schema
-	// 3. Process and format the response
 
 	// For now, return a mock response
 	mockResult := map[string]any{
@@ -130,9 +135,9 @@ func (s *ExtractorService) GetAvailableSchemas() []string {
 }
 
 // ProcessText orchestrates the extraction process for a given text and schema.
-func (s *ExtractorService) ProcessText(schemaName string, text string) (*ExtractionOutput, error) {
+func (s *ExtractorService) ProcessText(schemaNames []string, text string) (*ExtractionOutput, error) {
 	s.logger.Info("Starting extraction process",
-		zap.String("schemaName", schemaName),
+		zap.Strings("schemaName", schemaNames),
 		zap.Int("textLength", len(text)),
 	)
 
@@ -140,10 +145,16 @@ func (s *ExtractorService) ProcessText(schemaName string, text string) (*Extract
 	// Replace Windows CRLF and standalone CR with Unix LF for consistency
 	normalizedText := strings.ReplaceAll(text, "\r\n", "\n")
 	normalizedText = strings.ReplaceAll(normalizedText, "\r", "\n")
-	s.logger.Debug("Text normalized", zap.Int("normalizedLength", len(normalizedText)))
+	s.logger.Debug("Text normalizedoy", zap.Int("normalizedLength", len(normalizedText)))
+
+	combinedSchema, err := s.CombineSchemas(schemaNames)
+	if err != nil {
+		s.logger.Error("Failed to combine schemas", zap.Strings("names", schemaNames), zap.Error(err))
+		return nil, fmt.Errorf("failed during schema combination: %w", err)
+	}
 
 	// Step 1: Format the prompt
-	prompt, err := s.formatExtractionPrompt(schemaName, normalizedText)
+	prompt, err := s.formatExtractionPrompt(combinedSchema, normalizedText)
 	if err != nil {
 		// Error already logged in formatExtractionPrompt
 		return nil, fmt.Errorf("failed during prompt formatting: %w", err)
@@ -176,7 +187,7 @@ func (s *ExtractorService) ProcessText(schemaName string, text string) (*Extract
 	}
 
 	s.logger.Info("Extraction process completed successfully",
-		zap.String("schemaName", schemaName),
+		zap.Strings("schemaName", schemaNames),
 		zap.Int("finalEntityCount", len(finalOutput.Entities)), // Count top-level entities
 	)
 	return finalOutput, nil

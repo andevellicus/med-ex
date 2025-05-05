@@ -1,8 +1,9 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
+	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -36,31 +37,60 @@ func (h *SchemaHandler) GetSchemas(c *gin.Context) {
 
 // GetSchemaDetails handles GET /api/schemas/:schemaName/details
 func (h *SchemaHandler) GetSchemaDetails(c *gin.Context) {
-	schemaName := c.Param("schemaName")
-	if schemaName == "" {
-		h.Logger.Error("Missing schemaName path parameter")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing schema name in path"})
+	schemaNames := c.QueryArray("schemas")
+	if len(schemaNames) == 0 {
+		h.Logger.Error("GetSchemaDetails called without 'schemas' parameter")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing 'schemas' in query"})
 		return
 	}
 
-	// Get the specific schema structure from the extractor service
-	// We need to add a method to ExtractorService to retrieve a single schema by name
-	schemaData, found := h.getSchemaByName(schemaName)
-	if !found {
-		h.Logger.Error("Schema not found", zap.String("schemaName", schemaName))
-		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("Schema '%s' not found", schemaName)})
-		return
+	combinedEntityNames := make(map[string]bool)
+	availableSchemas := h.Extractor.GetAvailableSchemas()
+
+	for _, schemaName := range schemaNames {
+		// Basic sanitization (optional but good practice)
+		cleanSchemaName := filepath.Base(schemaName)
+		if cleanSchemaName != schemaName || strings.Contains(cleanSchemaName, "..") {
+			h.Logger.Warn("Skipping invalid schema name in details request", zap.String("original", schemaName), zap.String("cleaned", cleanSchemaName))
+			continue // Skip invalid names
+		}
+
+		// Check if schema exists before trying to process
+		if !slices.Contains(availableSchemas, cleanSchemaName) {
+			h.Logger.Warn("Requested schema for details not found", zap.String("schemaName", cleanSchemaName))
+			continue // Skip non-existent schemas
+		}
+
+		schemaData, found := h.getSchemaByName(cleanSchemaName) // Use cleaned name
+		if !found {
+			// This check might be redundant if the check above is done, but keep for safety
+			h.Logger.Warn("Schema not found when getting details", zap.String("schemaName", cleanSchemaName))
+			continue
+		}
+
+		// Flatten keys for the current schema
+		// Ensure schemaData is map[string]any before passing
+		schemaInterfaceMap := make(map[string]any, len(schemaData))
+		maps.Copy(schemaInterfaceMap, schemaData) // Convert extractor.Schema to map[string]any
+
+		entityNames := flattenSchemaEntityNames(schemaInterfaceMap, "") // Pass the converted map
+
+		// Add to combined map (ensures uniqueness)
+		for _, entityName := range entityNames {
+			combinedEntityNames[entityName] = true
+		}
 	}
-	// *** Convert extractor.Schema (map[string]any) to map[string]any ***
-	// This step is crucial to match the function signature AND allows the first level keys to be processed correctly
-	schemaInterfaceMap := make(map[string]any, len(schemaData))
-	maps.Copy(schemaInterfaceMap, schemaData)
 
-	// Flatten the keys
-	entityNames := flattenSchemaEntityNames(schemaData, "")
-	sort.Strings(entityNames) // Sort for consistent order
+	// Convert map keys back to a slice
+	finalEntityList := make([]string, 0, len(combinedEntityNames))
+	for entityName := range combinedEntityNames {
+		finalEntityList = append(finalEntityList, entityName)
+	}
 
-	c.JSON(http.StatusOK, gin.H{"entityNames": entityNames})
+	sort.Strings(finalEntityList) // Sort for consistent order
+
+	h.Logger.Info("Returning combined entity names", zap.Int("count", len(finalEntityList)), zap.Strings("schemas", schemaNames))
+	c.JSON(http.StatusOK, gin.H{"entityNames": finalEntityList})
 }
 
 func (h *SchemaHandler) getSchemaByName(name string) (extractor.Schema, bool) {

@@ -66,7 +66,7 @@ func main() {
 	// --- Add Handler Initialization ---
 	schemaHandler := handlers.NewSchemaHandler(extractorService, log, schemaDir)
 	extractHandler := handlers.NewExtractHandler(extractorService, log)
-	saveResultsHandler := handlers.NewSaveResultsHandler(resultsDir, schemaDir, log)
+	saveResultsHandler := handlers.NewSaveResultsHandler(resultsDir, extractorService, log)
 	log.Info("Handlers initialized")
 
 	// Set Gin mode
@@ -87,7 +87,8 @@ func main() {
 	{
 
 		api.GET("/schemas", schemaHandler.GetSchemas)
-		api.GET("/schemas/:schemaName/details", schemaHandler.GetSchemaDetails)
+		api.GET("/schemas/details", schemaHandler.GetSchemaDetails)
+		//api.GET("/schemas/:schemaName/content", schemaHandler.GetSchemaContent)
 		api.POST("/extract", extractHandler.ExtractEntities)
 		api.POST("/save-results", saveResultsHandler.SaveResults)
 		// Add other API routes here

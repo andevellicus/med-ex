@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import {
     Box,
-    SelectChangeEvent,
     Typography,
     Divider,
     Button,
@@ -12,16 +11,16 @@ import {
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save'
 import { ExtractionResult } from '../types';
-import SchemaSelector from './SchemaSelector'; // Import new component
+import MultiSchemaSelector from './MultiSchemaSelector';
 import FileUploadZone from './FileUploadZone'; // Import new component
 
 // Define props for ControlsSidebar
 interface ControlsSidebarProps {
     schemas: string[];
-    selectedSchema: string;
+    selectedSchemas: string[];
     isLoadingSchemas: boolean;
     schemaError: string | null;
-    onSchemaChange: (event: SelectChangeEvent<string>) => void;
+    onSchemaSelectionChange: (event: string[]) => void;
     isExtracting: boolean;
     onExtractStart: () => void;
     onExtractComplete: (result: ExtractionResult) => void;
@@ -32,10 +31,10 @@ interface ControlsSidebarProps {
 
 function ControlsSidebar({
     schemas,
-    selectedSchema,
+    selectedSchemas,
     isLoadingSchemas,
     schemaError,
-    onSchemaChange,
+    onSchemaSelectionChange,
     isExtracting,
     onExtractStart,
     onExtractComplete,
@@ -56,74 +55,92 @@ function ControlsSidebar({
 
     // Handle form submission
     const handleSubmit = async () => {
-        if (!file || !selectedSchema) { return; }
-        onExtractStart();
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('schema', selectedSchema);
-            const response = await fetch('/api/extract', { method: 'POST', body: formData });
-
-            if (!response.ok) {
-                let errorMsg = `Server error: ${response.status} ${response.statusText}`;
-                try {
-                    const errorData = await response.json();
-                    if (errorData && errorData.error) { errorMsg = errorData.error; }
-                } catch (e) { console.warn("Could not parse error response as JSON", e); }
-                throw new Error(errorMsg);
-            }
-            const result: ExtractionResult = await response.json();
-            onExtractComplete(result);
-        } catch (error) {
-            console.error('Error during extraction:', error);
-            onExtractError(error instanceof Error ? error.message : 'Unknown error occurred');
+        // Check if file and *at least one* schema is selected
+        if (!file || selectedSchemas.length === 0) {
+             onExtractError("Please select a file and at least one schema."); // Provide user feedback
+             return;
         }
+        onExtractStart(); // Clear previous errors/results etc.
+
+        try {
+            const fileReader = new FileReader();
+            fileReader.readAsText(file); // Read file as text
+
+            fileReader.onload = async (e) => {
+                const textContent = e.target?.result as string;
+                if (!textContent) {
+                    throw new Error("Failed to read file content.");
+                }
+
+                const payload = {
+                    text: textContent,
+                    schema_names: selectedSchemas // Send the array of names
+                };
+
+                const response = await fetch('/api/extract', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload) // Send JSON payload
+                });
+
+                if (!response.ok) {
+                    let errorMsg = `Server error: ${response.status} ${response.statusText}`;
+                    try {
+                        const errorData = await response.json();
+                        if (errorData && errorData.error) { errorMsg = errorData.error; }
+                    } catch (parseErr) { console.warn("Could not parse error response as JSON", parseErr); }
+                    throw new Error(errorMsg);
+                }
+                const result: ExtractionResult = await response.json();
+                onExtractComplete(result);
+            };
+
+            fileReader.onerror = (e) => {
+                 console.error('Error reading file:', e);
+                 throw new Error("Error reading the uploaded file.");
+            }
+
+        } catch (error) {
+            console.error('Error during extraction setup or fetch:', error);
+            onExtractError(error instanceof Error ? error.message : 'Unknown error occurred during extraction');
+        }
+        // --- END JSON SEND ---
     };
     
     // --- Handle Save Button Click (SERVER-SIDE SAVE) ---
     const handleSave = async () => {
-        if (!currentResult || !selectedSchema || !file) {
-            setSaveStatus({ open: true, message: 'Cannot save: No results available or no schema selected.', severity: 'error' });
+        // Update check for selectedSchemas length and file
+        if (!currentResult || selectedSchemas.length === 0 || !file) {
+            setSaveStatus({ open: true, message: 'Cannot save: No results, schema selection, or original file.', severity: 'error' });
             return;
         }
-        // Ensure entities is at least an empty object if null/undefined in result
         const entitiesToSave = currentResult.entities ?? {};
 
         setIsSaving(true);
-        setSaveStatus({ open: false, message: '', severity: 'info' }); // Clear previous status
+        setSaveStatus({ open: false, message: '', severity: 'info' });
 
         try {
             const payload = {
-                schemaName: selectedSchema,
+                schemaNames: selectedSchemas, 
                 text: currentResult.text,
-                entities: entitiesToSave, // Send current entities
-                fileName: file.name
+                entities: entitiesToSave,
+                originalFilename: file.name
             };
 
             const response = await fetch('/api/save-results', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json', },
                 body: JSON.stringify(payload),
             });
-
-            const responseData = await response.json(); // Assume backend sends JSON response
-
-            if (!response.ok) {
-                // Use error message from backend if available
-                throw new Error(responseData.error || `Failed to save results: ${response.statusText}`);
-            }
-
-            // Use success message from backend if available
+            const responseData = await response.json();
+            if (!response.ok) { throw new Error(responseData.error || `Failed to save results: ${response.statusText}`); }
             setSaveStatus({ open: true, message: responseData.message || 'Results saved successfully!', severity: 'success' });
-
         } catch (error: any) {
             console.error("Error saving results:", error);
             setSaveStatus({ open: true, message: `Error saving results: ${error.message}`, severity: 'error' });
-        } finally {
-            setIsSaving(false);
-        }
+        } finally { setIsSaving(false); }
     };
 
      const handleCloseSnackbar = (_event?: React.SyntheticEvent | Event, reason?: string) => {
@@ -144,12 +161,12 @@ function ControlsSidebar({
             <Box className="hide-scrollbar" sx={{ flexGrow: 1, overflowY: 'auto', pr: 1 /* Add padding right for scrollbar */ }}>
                 <br /> 
                 {/* Use SchemaSelector Component */}
-                <SchemaSelector
+                <MultiSchemaSelector
                     schemas={schemas}
-                    selectedSchema={selectedSchema}
+                    selectedSchemas={selectedSchemas}
                     isLoadingSchemas={isLoadingSchemas}
                     schemaError={schemaError}
-                    onSchemaChange={onSchemaChange}
+                    onSchemaSelectionChange={onSchemaSelectionChange}
                 />
                 {/* Display the schema content/details loading error */}
                 {schemaLoadingError && (
@@ -169,7 +186,7 @@ function ControlsSidebar({
                         variant="contained"
                         fullWidth
                         color="primary"
-                        disabled={!file || !selectedSchema || isExtracting}
+                        disabled={!file || !selectedSchemas || isExtracting}
                         onClick={handleSubmit}
                         startIcon={isExtracting ? <CircularProgress size={20} color="inherit" /> : undefined}
                     >
@@ -181,7 +198,7 @@ function ControlsSidebar({
                         variant="outlined" 
                         fullWidth
                         color="secondary"
-                        disabled={!currentResult || !selectedSchema || !file || isSaving || isExtracting}
+                        disabled={!currentResult || !selectedSchemas || !file || isSaving || isExtracting}
                         onClick={handleSave} // Calls the updated server-side save function
                         startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
                     >

@@ -117,22 +117,13 @@ func (s *ExtractorService) callLLM(prompt string) (string, error) {
 }
 
 // formatExtractionPrompt formats the prompt for the LLM based on the Python script's template.
-func (s *ExtractorService) formatExtractionPrompt(schemaName string, text string) (string, error) {
-	// Retrieve the specific schema from the loaded map
-	schema, ok := s.Schemas[schemaName]
-	if !ok {
-		s.logger.Error("Schema not found", zap.String("schemaName", schemaName))
-		return "", fmt.Errorf("schema '%s' not found", schemaName)
-	}
-
+func (s *ExtractorService) formatExtractionPrompt(schema Schema, text string) (string, error) {
 	// Marshal the schema map into a pretty-printed JSON string
 	schemaJSON, err := json.MarshalIndent(schema, "", "  ") // Indent with 2 spaces
 	if err != nil {
-		s.logger.Error("Failed to marshal schema to JSON", zap.String("schemaName", schemaName), zap.Error(err))
-		return "", fmt.Errorf("failed to marshal schema '%s' to JSON: %w", schemaName, err)
+		s.logger.Error("Failed to marshal schema to JSON", zap.Error(err))
+		return "", fmt.Errorf("failed to marshal combined schema to JSON: %w", err)
 	}
-
-	s.logger.Info("Formatting prompt for schema", zap.String("schemaName", schemaName))
 
 	// Use fmt.Sprintf to build the prompt string, replicating the Python structure
 	// Note: Backticks ` ` are used for raw string literals in Go to handle newlines and quotes easily.

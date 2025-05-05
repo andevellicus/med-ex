@@ -6,19 +6,21 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/andevellicus/med-ex/internal/extractor" // Assuming types are here
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
 )
 
 // SaveResultsRequest defines the JSON structure expected from the frontend.
 type SaveResultsRequest struct {
-	SchemaName string                                  `json:"schemaName" binding:"required"`
-	Text       string                                  `json:"text" binding:"required"`
-	Entities   map[string][]extractor.EntityOccurrence `json:"entities"` // Use the existing type
-	FileName   string                                  `json:"fileName" binding:"required"`
+	SchemaNames      []string                                `json:"schemaNames" binding:"required,min=1"`
+	Text             string                                  `json:"text" binding:"required"`
+	Entities         map[string][]extractor.EntityOccurrence `json:"entities"`
+	OriginalFilename string                                  `json:"originalFilename" binding:"required"`
 }
 
 // SaveResultsResponse defines the JSON structure for the results file.
@@ -30,15 +32,15 @@ type SaveResultsResponse struct {
 // SaveResultsHandler handles saving results requests.
 type SaveResultsHandler struct {
 	ResultsBaseDir string
-	SchemaBaseDir  string // Need this to find the original schema file
+	Extractor      *extractor.ExtractorService
 	Logger         *zap.Logger
 }
 
 // NewSaveResultsHandler creates a new save handler.
-func NewSaveResultsHandler(resultsBaseDir string, schemaBaseDir string, logger *zap.Logger) *SaveResultsHandler {
+func NewSaveResultsHandler(resultsBaseDir string, extractor *extractor.ExtractorService, logger *zap.Logger) *SaveResultsHandler {
 	return &SaveResultsHandler{
 		ResultsBaseDir: resultsBaseDir,
-		SchemaBaseDir:  schemaBaseDir,
+		Extractor:      extractor,
 		Logger:         logger.Named("SaveResultsHandler"),
 	}
 }
@@ -47,72 +49,89 @@ func NewSaveResultsHandler(resultsBaseDir string, schemaBaseDir string, logger *
 func (h *SaveResultsHandler) SaveResults(c *gin.Context) {
 	var req SaveResultsRequest
 
-	// Bind JSON request body
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.Logger.Error("Failed to bind request JSON", zap.Error(err))
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: " + err.Error()})
 		return
 	}
 
-	// --- Input Validation & Sanitization ---
-	if req.Text == "" {
-		h.Logger.Warn("Save request received with empty text")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Text content cannot be empty"})
+	// --- Input Validation ---
+	if req.Text == "" || req.OriginalFilename == "" {
+		h.Logger.Warn("Save request missing text or original filename")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Text content and original filename are required"})
 		return
 	}
-	if req.FileName == "" { // Added check
-		h.Logger.Warn("Save request received without original filename")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Original filename is missing"})
+	// Validate schema names exist
+	availableSchemas := h.Extractor.GetAvailableSchemas()
+	invalidSchemas := []string{}
+	validSchemaNames := []string{} // Collect valid names
+	for _, reqSchema := range req.SchemaNames {
+		cleanSchemaName := filepath.Base(reqSchema) // Basic sanitization
+		if cleanSchemaName != reqSchema || strings.Contains(cleanSchemaName, "..") {
+			invalidSchemas = append(invalidSchemas, fmt.Sprintf("%s (invalid format)", reqSchema))
+			continue // Skip invalid format
+		}
+		if !slices.Contains(availableSchemas, cleanSchemaName) {
+			invalidSchemas = append(invalidSchemas, fmt.Sprintf("%s (not found)", reqSchema))
+		} else {
+			validSchemaNames = append(validSchemaNames, cleanSchemaName) // Add valid, clean name
+		}
+	}
+	if len(invalidSchemas) > 0 {
+		h.Logger.Error("Invalid or missing schema names requested for save", zap.Strings("invalid_or_missing", invalidSchemas), zap.Strings("requested", req.SchemaNames))
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid or missing schema name(s): %v", invalidSchemas)})
+		return
+	}
+	if len(validSchemaNames) == 0 { // Should be caught by binding:"min=1" but double-check
+		h.Logger.Error("No valid schema names provided after filtering", zap.Strings("requested", req.SchemaNames))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No valid schema names provided"})
 		return
 	}
 
-	// Basic sanitization for schema name (prevent path traversal)
-	cleanSchemaName := filepath.Base(req.SchemaName)
-	if cleanSchemaName != req.SchemaName || strings.Contains(cleanSchemaName, "..") {
-		h.Logger.Error("Invalid schema name potentially attempting traversal", zap.String("original", req.SchemaName), zap.String("cleaned", cleanSchemaName))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid schema name format"})
-		return
-	}
-	// Ensure Entities map is not nil if provided (it might be empty, which is ok)
 	if req.Entities == nil {
-		req.Entities = make(map[string][]extractor.EntityOccurrence) // Initialize if nil
+		req.Entities = make(map[string][]extractor.EntityOccurrence)
 	}
 	// --- End Validation ---
 
-	folderName := sanitizeFilenameForFolder(req.FileName)
-
-	// Create target directory path
+	// Sanitize original filename for folder name
+	folderName := sanitizeFilenameForFolder(req.OriginalFilename)
 	targetDir := filepath.Join(h.ResultsBaseDir, folderName)
 
-	// Create the directory if it doesn't exist
+	// Create the directory
 	if err := os.MkdirAll(targetDir, 0755); err != nil {
 		h.Logger.Error("Failed to create results directory", zap.String("path", targetDir), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create save directory"})
 		return
 	}
 
-	// --- Save schema.yaml ---
-	originalSchemaFileName := cleanSchemaName + ".yaml" // Assuming .yaml extension
-	originalSchemaPath := filepath.Join(h.SchemaBaseDir, originalSchemaFileName)
-	schemaContent, err := os.ReadFile(originalSchemaPath)
+	// --- Save COMBINED schema.yaml ---
+	h.Logger.Info("Attempting to combine schemas for saving", zap.Strings("schemas", validSchemaNames))
+	combinedSchemaData, err := h.Extractor.CombineSchemas(validSchemaNames) // Use valid names
 	if err != nil {
-		h.Logger.Error("Failed to read original schema file",
-			zap.String("schema_name", cleanSchemaName),
-			zap.String("path", originalSchemaPath),
-			zap.Error(err))
-		// Decide if this is a fatal error for the save operation
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Could not read schema file '%s'", cleanSchemaName)})
+		h.Logger.Error("Failed to combine schemas for saving", zap.Strings("schemas", validSchemaNames), zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to combine schemas: " + err.Error()})
 		return
 	}
-	schemaTargetPath := filepath.Join(targetDir, "schema.yaml")
-	if err := os.WriteFile(schemaTargetPath, schemaContent, 0644); err != nil {
-		h.Logger.Error("Failed to write schema file", zap.String("path", schemaTargetPath), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save schema file"})
-		return
-	}
-	h.Logger.Info("Saved schema file", zap.String("path", schemaTargetPath))
 
-	// --- Save text.txt ---
+	// Marshal the combined schema data to YAML
+	combinedYamlBytes, err := yaml.Marshal(combinedSchemaData)
+	if err != nil {
+		h.Logger.Error("Failed to marshal combined schema to YAML", zap.Strings("schemas", validSchemaNames), zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate combined schema file content"})
+		return
+	}
+
+	// Write the combined YAML to schema.yaml
+	schemaTargetPath := filepath.Join(targetDir, "schema.yaml")
+	if err := os.WriteFile(schemaTargetPath, combinedYamlBytes, 0644); err != nil {
+		h.Logger.Error("Failed to write combined schema file", zap.String("path", schemaTargetPath), zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save combined schema file"})
+		return
+	}
+	h.Logger.Info("Saved combined schema file", zap.String("path", schemaTargetPath), zap.Strings("source_schemas", validSchemaNames))
+	// --- End Save Combined Schema ---
+
+	// --- Save text.txt (logic remains the same) ---
 	textTargetPath := filepath.Join(targetDir, "text.txt")
 	if err := os.WriteFile(textTargetPath, []byte(req.Text), 0644); err != nil {
 		h.Logger.Error("Failed to write text file", zap.String("path", textTargetPath), zap.Error(err))
@@ -121,12 +140,12 @@ func (h *SaveResultsHandler) SaveResults(c *gin.Context) {
 	}
 	h.Logger.Info("Saved text file", zap.String("path", textTargetPath))
 
-	// --- Save results.json ---
+	// --- Save results.json (logic remains the same) ---
 	resultsData := SaveResultsResponse{
 		Text:     req.Text,
 		Entities: req.Entities,
 	}
-	resultsJSON, err := json.MarshalIndent(resultsData, "", "  ") // Pretty print
+	resultsJSON, err := json.MarshalIndent(resultsData, "", "  ")
 	if err != nil {
 		h.Logger.Error("Failed to marshal results data to JSON", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare results data"})
@@ -141,12 +160,12 @@ func (h *SaveResultsHandler) SaveResults(c *gin.Context) {
 	h.Logger.Info("Saved results JSON file", zap.String("path", resultsTargetPath))
 
 	// --- Success Response ---
-	h.Logger.Info("Successfully saved results",
-		zap.String("schema", cleanSchemaName),
-		zap.String("filename", req.FileName),
-		zap.String("folder_name", folderName)) // Log the derived folder name
-	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Results saved successfully to folder '%s'", folderName)})
-
+	h.Logger.Info("Successfully saved results with combined schema",
+		zap.Strings("schemas", validSchemaNames),
+		zap.String("original_filename", req.OriginalFilename),
+		zap.String("folder_name", folderName),
+	)
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Results saved successfully to folder '%s' using combined schema.", folderName)})
 }
 
 // --- Function to sanitize filename for folder name ---

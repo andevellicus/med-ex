@@ -2,9 +2,7 @@ package handlers
 
 import (
 	"fmt"
-	"io"
 	"net/http"
-	"strings"
 
 	"slices"
 
@@ -18,8 +16,8 @@ const maxFileSize = 5 * 1024 * 1024
 
 // ExtractRequest defines the expected JSON body for the /api/extract endpoint.
 type ExtractRequest struct {
-	Text       string `json:"text" binding:"required"`
-	SchemaName string `json:"schema_name" binding:"required"`
+	Text        string   `json:"text" binding:"required"`
+	SchemaNames []string `json:"schema_names" binding:"required,min=1"`
 }
 
 // ExtractHandler handles entity extraction requests
@@ -38,71 +36,46 @@ func NewExtractHandler(extractor *extractor.ExtractorService, logger *zap.Logger
 
 // ExtractEntities handles POST /api/extract
 func (h *ExtractHandler) ExtractEntities(c *gin.Context) {
-	// Get selected schema from form
-	schema := c.PostForm("schema")
-	if schema == "" {
-		h.Logger.Error("Missing schema parameter")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing schema parameter"})
+	var req ExtractRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.Logger.Error("Failed to bind JSON request for extraction", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: " + err.Error()})
 		return
 	}
 
 	// Check if schema exists
-	schemas := h.Extractor.GetAvailableSchemas()
-	validSchema := slices.Contains(schemas, schema)
-	if !validSchema {
-		h.Logger.Error("Invalid schema", zap.String("schema", schema))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid schema"})
+	availableSchemas := h.Extractor.GetAvailableSchemas()
+	invalidSchemas := []string{}
+	for _, reqSchema := range req.SchemaNames {
+		if !slices.Contains(availableSchemas, reqSchema) {
+			invalidSchemas = append(invalidSchemas, reqSchema)
+		}
+	}
+	if len(invalidSchemas) > 0 {
+		h.Logger.Error("Invalid schema names requested", zap.Strings("invalid", invalidSchemas), zap.Strings("requested", req.SchemaNames))
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid schema name(s) provided: %v", invalidSchemas)})
 		return
 	}
 
-	// Get file from form
-	file, header, err := c.Request.FormFile("file")
-	if err != nil {
-		h.Logger.Error("Error getting file", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "File upload failed"})
-		return
-	}
-	defer file.Close()
-
-	// Check file type
-	fileName := header.Filename
-	if !strings.HasSuffix(strings.ToLower(fileName), ".txt") {
-		h.Logger.Error("Invalid file type", zap.String("filename", fileName))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Only .txt files are supported"})
-		return
-	}
-
-	// Check file size
-	if header.Size > maxFileSize {
-		h.Logger.Error("File too large", zap.Int64("size", header.Size))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "File size exceeds limit (5MB)"})
-		return
-	}
-
-	// Read file content
-	fileBytes, err := io.ReadAll(file)
-	if err != nil {
-		h.Logger.Error("Error reading file", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read file"})
-		return
-	}
-
-	// Convert bytes to string
-	textContent := string(fileBytes)
-
-	// Perform extraction
-	result, err := h.Extractor.ProcessText(schema, textContent)
+	// Perform extraction using multiple schema names
+	result, err := h.Extractor.ProcessText(req.SchemaNames, req.Text) // Pass array
 	if err != nil || result == nil {
-		h.Logger.Error("Extraction failed", zap.Error(err), zap.String("schema", schema))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Extraction failed: %v", err)})
+		h.Logger.Error("Multi-schema extraction failed", zap.Error(err), zap.Strings("schemas", req.SchemaNames))
+		// Provide a slightly more informative error if possible
+		errMsg := "Extraction failed"
+		if err != nil {
+			errMsg = fmt.Sprintf("Extraction failed: %v", err)
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errMsg})
 		return
 	}
 
 	// Log success
-	h.Logger.Info("Extraction successful",
-		zap.String("schema", schema),
-		zap.String("filename", header.Filename),
-		zap.Int64("filesize", header.Size))
+	h.Logger.Info("Multi-schema extraction successful",
+		zap.Strings("schemas", req.SchemaNames),
+		zap.Int("text_length", len(req.Text)),
+		zap.Int("entities_found", len(result.Entities)),
+	)
 
 	// Return result
 	c.JSON(http.StatusOK, result)
